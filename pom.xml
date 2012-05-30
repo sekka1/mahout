@@ -15,7 +15,7 @@
   </repositories>
   
   <build>
-	<finalName>salesguy</finalName>
+	<finalName>AlgorithmsMahout</finalName>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
