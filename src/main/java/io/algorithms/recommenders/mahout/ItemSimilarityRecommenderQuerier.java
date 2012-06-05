@@ -65,16 +65,16 @@ public abstract class ItemSimilarityRecommenderQuerier implements Algorithm {
         long itemId = Long.parseLong(parameters.get(ITEM_ID));
         int numRec = Integer.parseInt(parameters.get(NUM_REC));
         DataSetEntity inputDataSet = inputDataSets.get(0);
-        File f = inputDataSet.getDataFile();
+//        File f = inputDataSet.getDataFile();
 
-        try {
-            DataModel model = new GenericBooleanPrefDataModel(GenericBooleanPrefDataModel.toDataMap(new FileDataModel(f)));
-            ItemSimilarity itemSimilarity = new LogLikelihoodSimilarity(model);
-            ItemBasedRecommender recommender = new GenericBooleanPrefItemBasedRecommender(model, itemSimilarity);
+//        try {
+//            DataModel model = new GenericBooleanPrefDataModel(GenericBooleanPrefDataModel.toDataMap(new FileDataModel(f)));
+//            ItemSimilarity itemSimilarity = new LogLikelihoodSimilarity(model);
+//            ItemBasedRecommender recommender = new GenericBooleanPrefItemBasedRecommender(model, itemSimilarity);
 
-        } catch (TasteException e) {
-            throw new AlgorithmException(e);
-        }
+//        } catch (TasteException e) {
+//            throw new AlgorithmException(e);
+//        }
         
         return null;
     }

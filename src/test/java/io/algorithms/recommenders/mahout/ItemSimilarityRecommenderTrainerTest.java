@@ -8,6 +8,7 @@ package io.algorithms.recommenders.mahout;
 import java.util.Properties;
 
 import io.algorithms.entity.DataSetEntity;
+import io.algorithms.entity.DataSetEntityBase;
 import junit.framework.TestCase;
 
 /**
@@ -22,7 +23,7 @@ public class ItemSimilarityRecommenderTrainerTest extends TestCase {
      */
     @Override
     protected void setUp() throws Exception {
-        inputDataSet = new DataSetEntity();
+        inputDataSet = new DataSetEntityBase();
     }
 
     public void testLogLikelihood() {
