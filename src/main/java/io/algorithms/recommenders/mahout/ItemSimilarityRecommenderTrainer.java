@@ -7,26 +7,19 @@ package io.algorithms.recommenders.mahout;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
-import io.algorithms.common.resource.Algorithm;
-import io.algorithms.common.resource.AlgorithmException;
-import io.algorithms.common.resource.InvalidDataSetException;
-import io.algorithms.common.resource.InvalidParameterException;
+import io.algorithms.datastore.AmazonDataStore;
+import io.algorithms.datastore.DataStore;
+import io.algorithms.entity.AlgorithmException;
 import io.algorithms.entity.DataSetEntity;
 import io.algorithms.entity.DataSetEntityBase;
+import io.algorithms.entity.InvalidDataSetException;
+import io.algorithms.entity.InvalidParameterException;
 
 import org.apache.mahout.cf.taste.common.TasteException;
 import org.apache.mahout.cf.taste.impl.common.LongPrimitiveIterator;
@@ -35,6 +28,9 @@ import org.apache.mahout.cf.taste.impl.similarity.LogLikelihoodSimilarity;
 import org.apache.mahout.cf.taste.impl.similarity.TanimotoCoefficientSimilarity;
 import org.apache.mahout.cf.taste.model.DataModel;
 import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
+
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
  * Trains an item based recommender.
@@ -49,6 +45,7 @@ public class ItemSimilarityRecommenderTrainer {
     }
 
     private static final String ITEM_SIMILARITY_METRIC = "ItemSimilarityMetric";
+    
     
     /* (non-Javadoc)
      * @see io.algorithms.common.resource.Algorithm#validate(java.util.List, org.apache.mahout.common.Parameters)
@@ -84,70 +81,55 @@ public class ItemSimilarityRecommenderTrainer {
         // retrieve input parameters and datasets
         ItemSimilarityMetric itemSimilarityMetric = ItemSimilarityMetric.valueOf(parameters.getProperty(ITEM_SIMILARITY_METRIC));
         DataSetEntity inputDataSet = inputDataSets.get(0);
-//        File file = inputDataSet.getDataFile();
-//        DataModel model = new FileDataModel(file);
-//        try {
-//            // get appropriate item similarity implementation
-//            ItemSimilarity similarity = getItemSimilarity(itemSimilarityMetric, model);
-//            if (similarity == null) {
-//                throw new AlgorithmException("Cannot find item similarity algorithm for [" + itemSimilarityMetric + "]");
-//            }
-//            
-//            LongPrimitiveIterator itemIds = model.getItemIDs();
-//            if (itemIds == null) {
-//                throw new AlgorithmException("Cannot find item ids for dataset id [" + inputDataSet.getId() + "]");
-//            }
-//            
-//            List<Long> itemIdList = new ArrayList<Long>();
-//            while (itemIds.hasNext()) {
-//                itemIdList.add(itemIds.nextLong());
-//            }
-//
-//            // store item similarity in matrix
-//            final double[][] matrix = new double[itemIdList.size()][itemIdList.size()];
-//            final long[] itemIdArray = new long[itemIdList.size()];
-//            for (int i = 0; i < itemIdArray.length; i++) {
-//                for (int j = i+1; j < itemIdArray.length; j++) {
-//                    double similarityValue = similarity.itemSimilarity(i, j);
-//                    matrix[i][j] = similarityValue;
-//                    matrix[j][i] = similarityValue;
-//                }
-//            }
-//
-//            // write similarity matrix to output dataset
-//            PipedInputStream pis = new PipedInputStream();
-//            PipedOutputStream pos = new PipedOutputStream(pis);
-//            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(pos));
-//            Callable task = new Callable() {
-//                public Object call() throws Exception {
-//                    for (int i = 0; i < itemIdArray.length; i++) {
-//                        for (int j = 0; j < itemIdArray.length; j++) {
-//                            bw.write(String.valueOf(matrix[i][j]));
-//                        }
-//                    }
-//                    bw.close();
-//                    return null;
-//                }
-//            };
-//
-//            DataSetEntity outputDataSet = new DataSetEntityBase();
-//            outputDataSet.putDataStream(pis);
-//
-//            ExecutorService executor = Executors.newFixedThreadPool(1);
-//            Future f = executor.submit(task);
-//            try {
-//                executor.awaitTermination(10, TimeUnit.MINUTES);
-//            } catch (InterruptedException e) {
-//                Thread.currentThread().interrupt();
-//            }
-//
-//            // TODO: need to persist outputDataSet
-//
-//            return f.isDone()? Arrays.asList(outputDataSet): null;
-//
-//        } catch (TasteException e) {
-//            throw new AlgorithmException(e);
-//        }
+        File file = inputDataSet.getDataFile();
+        
+        try {
+            DataModel model = new FileDataModel(file);
+            // get appropriate item similarity implementation
+            ItemSimilarity similarity = getItemSimilarity(itemSimilarityMetric, model);
+            if (similarity == null) {
+                throw new AlgorithmException("Cannot find item similarity algorithm for [" + itemSimilarityMetric + "]");
+            }
+            
+            LongPrimitiveIterator itemIds = model.getItemIDs();
+            if (itemIds == null) {
+                throw new AlgorithmException("Cannot find item ids for dataset [" + file + "]");
+            }
+            
+            List<Long> itemIdList = new ArrayList<Long>();
+            while (itemIds.hasNext()) {
+                itemIdList.add(itemIds.nextLong());
+            }
+
+            // store item similarity in matrix
+            final double[][] matrix = new double[itemIdList.size()][itemIdList.size()];
+            final long[] itemIdArray = new long[itemIdList.size()];
+            for (int i = 0; i < itemIdArray.length; i++) {
+                for (int j = i+1; j < itemIdArray.length; j++) {
+                    double similarityValue = similarity.itemSimilarity(i, j);
+                    matrix[i][j] = similarityValue;
+                    matrix[j][i] = similarityValue;
+                }
+            }
+
+            File outputFile = new File(String.valueOf(System.currentTimeMillis()));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
+            for (int i = 0; i < itemIdArray.length; i++) {
+                for (int j = 0; j < itemIdArray.length; j++) {
+                    bw.write(String.valueOf(matrix[i][j]));
+                    if (j < itemIdArray.length - 1) { bw.write(","); }
+                }
+                bw.write("\n");
+            }
+            
+            // now create output data set
+            DataSetEntityBase output = new DataSetEntityBase();
+            output.setName(outputFile.getName());
+            output.putDataFile(outputFile);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return null;
     }
 
