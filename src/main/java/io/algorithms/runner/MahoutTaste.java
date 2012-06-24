@@ -11,9 +11,26 @@ public class MahoutTaste extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response)
     throws IOException, ServletException
     {
-        String dataFilePath = "/opt/Data-Sets/Automation/";
-        String action = request.getParameter("action");
+        //String dataFilePath = "/opt/Data-Sets/Automation/";
+    	String dataFilePath = "./data/";
+        //Forward Slashes can't be used by windows
         
+        if (System.getProperty("os.name").toLowerCase().contains("win") || request.getParameter("path_type").equals("windows"))
+        	dataFilePath = dataFilePath.replace("/", "\\");
+        
+        String action = request.getParameter("action");
+        if( action.equals( "SimItemTanimotoCoefficient" ) ){
+
+            // Get Inputs
+            String recsFile = dataFilePath + request.getParameter("file");
+            String itemId = request.getParameter("itemId");
+            String numRec = request.getParameter("numRec");
+            // Run Action
+            SimItemLogLikelihood simItemLogLikelihood = new SimItemLogLikelihood();
+            String outputString = simItemLogLikelihood.get( recsFile, itemId, numRec );
+            // Output results
+            this.output( response, outputString );
+        }
         if( action.equals( "SimItemLogLikelihood" ) ){
 
             // Get Inputs
