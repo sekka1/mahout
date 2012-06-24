@@ -12,7 +12,7 @@ public class MahoutTaste extends HttpServlet {
     throws IOException, ServletException
     {
         //String dataFilePath = "/opt/Data-Sets/Automation/";
-    	String dataFilePath = "./data/";
+    	String dataFilePath = "./data/"; 
         //Forward Slashes can't be used by windows
         
         if (System.getProperty("os.name").toLowerCase().contains("win") || request.getParameter("path_type").equals("windows"))
