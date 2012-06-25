@@ -9,15 +9,15 @@ import org.apache.mahout.cf.taste.impl.model.GenericBooleanPrefDataModel;
 import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
 import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
 import org.apache.mahout.cf.taste.impl.recommender.GenericBooleanPrefItemBasedRecommender;
+import org.apache.mahout.cf.taste.impl.similarity.CityBlockSimilarity;
+import org.apache.mahout.cf.taste.impl.similarity.EuclideanDistanceSimilarity;
 import org.apache.mahout.cf.taste.impl.similarity.LogLikelihoodSimilarity;
-import org.apache.mahout.cf.taste.impl.similarity.TanimotoCoefficientSimilarity;
 import org.apache.mahout.cf.taste.impl.eval.*;
 import org.apache.mahout.cf.taste.recommender.Recommender;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.cf.taste.recommender.ItemBasedRecommender;
 import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
 import org.apache.mahout.cf.taste.eval.*;
-import org.apache.mahout.cf.taste.model.DataModel;
 import org.apache.mahout.cf.taste.model.PreferenceArray;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -29,7 +29,7 @@ import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
-public class SimItemTanimotoCoefficientEvaluator {
+public class SimItemEuclideanDistanceEvaluator {
 
     public static void main(String ... args){
         System.out.println(args[0]);
@@ -42,8 +42,8 @@ public class SimItemTanimotoCoefficientEvaluator {
 
         if( action.equals( "get" ) ){
         // Run the get method
-        	SimItemTanimotoCoefficientEvaluator simItemTanimotoCoefficientEvaluator = new SimItemTanimotoCoefficientEvaluator();
-            String results = simItemTanimotoCoefficientEvaluator.get( input_file, input_itemId, input_numRec );
+            SimItemEuclideanDistanceEvaluator simItemEuclideanDistanceEvaluator = new SimItemEuclideanDistanceEvaluator();
+            String results = simItemEuclideanDistanceEvaluator.get( input_file, input_itemId, input_numRec );
             System.out.println( results );
         }
     }
@@ -66,7 +66,7 @@ public class SimItemTanimotoCoefficientEvaluator {
             RecommenderBuilder recommenderBuilder = new RecommenderBuilder() {
                 @Override
                     public Recommender buildRecommender(DataModel model) throws TasteException {
-                        ItemSimilarity similarity = new TanimotoCoefficientSimilarity(model);
+                        ItemSimilarity similarity = new EuclideanDistanceSimilarity(model);
                         //UserNeighborhood neighborhood =
                         //    new NearestNUserNeighborhood(10, similarity, model);
                         return new GenericBooleanPrefItemBasedRecommender(model, similarity);
