@@ -30,8 +30,8 @@ public class SimItemTanimotoCoefficient {
 
         if( action.equals( "get" ) ){
         // Run the get method
-            SimItemLogLikelihoodNoPref simItemLogLikelihoodNoPref = new SimItemLogLikelihoodNoPref();
-            String results = simItemLogLikelihoodNoPref.get( input_file, input_itemId, input_numRec );
+        	SimItemTanimotoCoefficient simItemTanimotoCoefficient = new SimItemTanimotoCoefficient();
+            String results = simItemTanimotoCoefficient.get( input_file, input_itemId, input_numRec );
             System.out.println( results );
         }
     }

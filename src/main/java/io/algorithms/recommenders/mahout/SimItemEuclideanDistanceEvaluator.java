@@ -26,6 +26,7 @@ import javax.xml.parsers.SAXParserFactory;
 import java.util.*;
 
 import java.io.*;
+
 import javax.servlet.*;
 import javax.servlet.http.*;
 
@@ -56,10 +57,9 @@ public class SimItemEuclideanDistanceEvaluator {
             String recsFile = input_file;                                                                    
             long itemId = Long.parseLong( input_itemId );                                                    
             int numRec = Integer.parseInt( input_numRec );
-
-            DataModel model = new GenericBooleanPrefDataModel(
-                    GenericBooleanPrefDataModel.toDataMap(
-                        new FileDataModel(new File(recsFile))));
+            
+          //create the data model
+            FileDataModel dataModel = new FileDataModel(new File(recsFile));
 
             RecommenderEvaluator evaluator =
                 new AverageAbsoluteDifferenceRecommenderEvaluator();
@@ -83,7 +83,7 @@ public class SimItemEuclideanDistanceEvaluator {
 
             // Run the evaluator to get the results                                                          
             double score = evaluator.evaluate(                                                               
-                    recommenderBuilder, modelBuilder, model, 0.9, 1.0);
+                    recommenderBuilder, modelBuilder, dataModel, 0.9, 1.0);
 
             data += "{\"score\":\"" + score + "\"}";
 

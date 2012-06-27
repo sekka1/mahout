@@ -11,6 +11,7 @@ import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
 import org.apache.mahout.cf.taste.impl.recommender.GenericBooleanPrefItemBasedRecommender;
 import org.apache.mahout.cf.taste.impl.similarity.CityBlockSimilarity;
 import org.apache.mahout.cf.taste.impl.similarity.LogLikelihoodSimilarity;
+import org.apache.mahout.cf.taste.impl.similarity.UncenteredCosineSimilarity;
 import org.apache.mahout.cf.taste.impl.eval.*;
 import org.apache.mahout.cf.taste.recommender.Recommender;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
@@ -52,6 +53,7 @@ public class SimItemUncenteredCosineEvaluator {
         String data = "[";
     
         //create the data model
+        /*
         try{
             String recsFile = input_file;                                                                    
             long itemId = Long.parseLong( input_itemId );                                                    
@@ -90,6 +92,7 @@ public class SimItemUncenteredCosineEvaluator {
         }catch(Exception e){                                                                                                          
             System.out.println("gkan error" + e.getMessage() );                                                                        
         }
+        */
     
         data += "]";
 

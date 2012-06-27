@@ -50,7 +50,7 @@ public class SimItemUncenteredCosine {
     public String get( String input_file, String input_itemId, String input_numRec )
     {
         String data = "[";
-
+/*
         try{
             String recsFile = input_file;
             long itemId = Long.parseLong( input_itemId );
@@ -78,7 +78,7 @@ public class SimItemUncenteredCosine {
         } catch(Exception e){
             System.out.println("gkan error" + e.getMessage() );
         }
-
+*/
         data += "]";
 
         return data;
