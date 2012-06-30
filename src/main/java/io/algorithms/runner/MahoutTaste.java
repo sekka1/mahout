@@ -29,9 +29,6 @@ public class MahoutTaste extends HttpServlet {
             SimItemCityBlock simItemCityBlock = new SimItemCityBlock();
             String outputString = simItemCityBlock.get( recsFile, itemId, numRec );
             
-            //test
-            this.output( response, "Hi" );
-            
             // Output results
             this.output( response, outputString );
         }
@@ -71,7 +68,7 @@ public class MahoutTaste extends HttpServlet {
             // Output results
             this.output( response, outputString );
         }
-        /*
+        
         if( action.equals( "SimItemUncenteredCosine" ) ){
 
             // Get Inputs
@@ -96,7 +93,7 @@ public class MahoutTaste extends HttpServlet {
             // Output results
             this.output( response, outputString );
         }
-        */
+        
         if( action.equals( "SimItemTanimotoCoefficient" ) ){
 
             // Get Inputs

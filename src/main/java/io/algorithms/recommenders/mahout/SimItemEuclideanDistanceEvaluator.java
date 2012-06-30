@@ -9,6 +9,7 @@ import org.apache.mahout.cf.taste.impl.model.GenericBooleanPrefDataModel;
 import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
 import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
 import org.apache.mahout.cf.taste.impl.recommender.GenericBooleanPrefItemBasedRecommender;
+import org.apache.mahout.cf.taste.impl.similarity.AveragingPreferenceInferrer;
 import org.apache.mahout.cf.taste.impl.similarity.CityBlockSimilarity;
 import org.apache.mahout.cf.taste.impl.similarity.EuclideanDistanceSimilarity;
 import org.apache.mahout.cf.taste.impl.similarity.LogLikelihoodSimilarity;
@@ -59,20 +60,22 @@ public class SimItemEuclideanDistanceEvaluator {
             int numRec = Integer.parseInt( input_numRec );
             
           //create the data model
-            FileDataModel dataModel = new FileDataModel(new File(recsFile));
+            final FileDataModel dataModel = new FileDataModel(new File(recsFile));
 
             RecommenderEvaluator evaluator =
                 new AverageAbsoluteDifferenceRecommenderEvaluator();
+            
             RecommenderBuilder recommenderBuilder = new RecommenderBuilder() {
                 @Override
                     public Recommender buildRecommender(DataModel model) throws TasteException {
                         ItemSimilarity similarity = new EuclideanDistanceSimilarity(model);
+                        
                         //UserNeighborhood neighborhood =
                         //    new NearestNUserNeighborhood(10, similarity, model);
                         return new GenericBooleanPrefItemBasedRecommender(model, similarity);
                     }
             };                                                                                               
-                                                                                                             
+                          
             DataModelBuilder modelBuilder = new DataModelBuilder() {                                         
                 @Override                                                                                    
                     public DataModel buildDataModel(FastByIDMap<PreferenceArray> trainingData) {             
@@ -83,7 +86,7 @@ public class SimItemEuclideanDistanceEvaluator {
 
             // Run the evaluator to get the results                                                          
             double score = evaluator.evaluate(                                                               
-                    recommenderBuilder, modelBuilder, dataModel, 0.9, 1.0);
+                    recommenderBuilder, null, dataModel, 0.9, 1.0);
 
             data += "{\"score\":\"" + score + "\"}";
 

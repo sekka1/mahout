@@ -53,7 +53,7 @@ public class SimItemUncenteredCosineEvaluator {
         String data = "[";
     
         //create the data model
-        /*
+        
         try{
             String recsFile = input_file;                                                                    
             long itemId = Long.parseLong( input_itemId );                                                    
@@ -62,7 +62,6 @@ public class SimItemUncenteredCosineEvaluator {
             DataModel model = new GenericBooleanPrefDataModel(
                     GenericBooleanPrefDataModel.toDataMap(
                         new FileDataModel(new File(recsFile))));
-
             RecommenderEvaluator evaluator =
                 new AverageAbsoluteDifferenceRecommenderEvaluator();
             RecommenderBuilder recommenderBuilder = new RecommenderBuilder() {
@@ -74,7 +73,6 @@ public class SimItemUncenteredCosineEvaluator {
                         return new GenericBooleanPrefItemBasedRecommender(model, similarity);
                     }
             };                                                                                               
-                                                                                                             
             DataModelBuilder modelBuilder = new DataModelBuilder() {                                         
                 @Override                                                                                    
                     public DataModel buildDataModel(FastByIDMap<PreferenceArray> trainingData) {             
@@ -82,17 +80,19 @@ public class SimItemUncenteredCosineEvaluator {
                                 GenericBooleanPrefDataModel.toDataMap(trainingData));                        
                     }                                                                                        
             }; 
-
-            // Run the evaluator to get the results                                                          
+            // Run the evaluator to get the results      
+            
+            //It freaks out below this line
             double score = evaluator.evaluate(                                                               
-                    recommenderBuilder, modelBuilder, model, 0.9, 1.0);
-
+                    recommenderBuilder, null, model, 0.9, 1.0);
+            //it freaks out above this line
+            
             data += "{\"score\":\"" + score + "\"}";
 
         }catch(Exception e){                                                                                                          
             System.out.println("gkan error" + e.getMessage() );                                                                        
         }
-        */
+        
     
         data += "]";
 

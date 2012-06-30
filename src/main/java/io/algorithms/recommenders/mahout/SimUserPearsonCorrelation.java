@@ -47,7 +47,8 @@ public class SimUserPearsonCorrelation {
 
             //create the data model
             FileDataModel dataModel = new FileDataModel(new File(recsFile));
-
+            
+            data+= " hello ";
             //Create an userSimilarity
             UserSimilarity userSimilarity = new LogLikelihoodSimilarity(dataModel);
 
@@ -56,20 +57,24 @@ public class SimUserPearsonCorrelation {
 
             //Get a neighborhood of users
             UserNeighborhood neighborhood = new NearestNUserNeighborhood(neighborhoodSize, userSimilarity, dataModel);
-
+            
+            data+= " bears ";
             //Create the recommender
             Recommender recommender =
                 new GenericUserBasedRecommender(dataModel, neighborhood, userSimilarity);
-
+            
+            data+= " soda ";
             //Get the recommendations                                                                     
             List<RecommendedItem> recommendations = recommender.recommend(userId, numRec);
-
+            
+            data+= " pop ";
             for (RecommendedItem item : recommendations) {
                 Comparable<?> theItem = item.getItemID();
 
                 data += "{\"id\":\""+theItem+"\",\"value\":\""+item.getValue()+"\"},";
             }
-
+            
+            data+= " troll ";
             data = data.substring(0, data.length() - 1);
 
         } catch(Exception e){
