@@ -11,14 +11,20 @@ public class MahoutTaste extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response)
     throws IOException, ServletException
     {
-        //String dataFilePath = "/opt/Data-Sets/Automation/";
-    	String dataFilePath = "./data/"; 
+        String dataFilePath = "/opt/Data-Sets/Automation/";
+    	//String dataFilePath = "./data/"; 
         //Forward Slashes can't be used by windows
         
-        if (System.getProperty("os.name").toLowerCase().contains("win") || request.getParameter("path_type").equals("windows"))
+        String os = System.getProperty("os.name");
+        if (os!=null && os.toLowerCase().contains("win") || request.getParameter("path_type").equals("windows"))
         	dataFilePath = dataFilePath.replace("/", "\\");
         
         String action = request.getParameter("action");
+        
+        if (action.equals("DebugALL"))
+        {
+        	
+        }
         if( action.equals( "SimItemCityBlock" ) ){
 
             // Get Inputs
