@@ -46,9 +46,14 @@ public class MahoutTaste extends HttpServlet {
             String recsFile = dataFilePath + request.getParameter("file");
             String itemId = request.getParameter("itemId");
             String numRec = request.getParameter("numRec");
+            String neighborhoodSize;
+            if (request.getParameter("neighborhoodSize") != null)
+            	neighborhoodSize = request.getParameter("neighborhoodSize");
+            else
+            	neighborhoodSize = "10";
             // Run Action
             SimItemCityBlockEvaluator simItemCityBlockEvaluator = new SimItemCityBlockEvaluator();
-            String outputString = simItemCityBlockEvaluator.get( recsFile, itemId, numRec );
+            String outputString = simItemCityBlockEvaluator.get( recsFile, itemId, numRec, neighborhoodSize );
             // Output results
             this.output( response, outputString );
         }
@@ -176,7 +181,37 @@ public class MahoutTaste extends HttpServlet {
             // Output results
             this.output( response, outputString );                                                           
         }
+        if( action.equals( "SimUserPearsonCorrelationEvaluator" ) ){
+
+            // Get Inputs
+            String recsFile = dataFilePath + request.getParameter("file");
+            String userId = request.getParameter("userId");
+            String numRec = request.getParameter("numRec");
+            
+            //not using neighboorhoodsize since its a set value of 10 originally from repo
+            String neighborhoodSize = request.getParameter("neighborhoodSize");
+            
+            // Run Action
+            SimUserPearsonCorrelationEvaluator simUserPearsonCorrelationEvaluator = new SimUserPearsonCorrelationEvaluator();
+            String outputString = simUserPearsonCorrelationEvaluator.get( recsFile, userId, numRec );
+            // Output results
+            this.output( response, outputString );                                                           
+        }
         if( action.equals( "SimUserSpearmanCorrelation" ) ){
+
+            // Get Inputs
+            String recsFile = dataFilePath + request.getParameter("file");
+            String userId = request.getParameter("userId");
+            String numRec = request.getParameter("numRec");
+            //not using neighboorhoodsize since its a set value of 10 originally from repo
+            String neighborhoodSize = request.getParameter("neighborhoodSize");
+            // Run Action
+            SimUserSpearmanCorrelation simUserSpearmanCorrelation = new SimUserSpearmanCorrelation();
+            String outputString = simUserSpearmanCorrelation.get( recsFile, userId, numRec, neighborhoodSize );
+            // Output results
+            this.output( response, outputString );                                                           
+        }
+        if( action.equals( "SimUserSpearmanCorrelationEvaluator" ) ){
 
             // Get Inputs
             String recsFile = dataFilePath + request.getParameter("file");
@@ -184,8 +219,9 @@ public class MahoutTaste extends HttpServlet {
             String numRec = request.getParameter("numRec");
             String neighborhoodSize = request.getParameter("neighborhoodSize");
             // Run Action
-            SimUserSpearmanCorrelation simUserSpearmanCorrelation = new SimUserSpearmanCorrelation();
-            String outputString = simUserSpearmanCorrelation.get( recsFile, userId, numRec, neighborhoodSize );
+            //not using neighboorhoodsize since its a set value of 10 originally from repo
+            SimUserSpearmanCorrelationEvaluator simUserSpearmanCorrelationEvaluator = new SimUserSpearmanCorrelationEvaluator();
+            String outputString = simUserSpearmanCorrelationEvaluator.get( recsFile, userId, numRec );
             // Output results
             this.output( response, outputString );                                                           
         }
