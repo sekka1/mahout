@@ -11,13 +11,15 @@ public class MahoutTaste extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response)
     throws IOException, ServletException
     {
-        String dataFilePath = "/opt/Data-Sets/Automation/";
-    	//String dataFilePath = "./data/"; 
+        //String dataFilePath = "/opt/Data-Sets/Automation/";
+    	String dataFilePath = "./data/"; 
         //Forward Slashes can't be used by windows
         
         String os = System.getProperty("os.name");
         if (os!=null && os.toLowerCase().contains("win") || request.getParameter("path_type").equals("windows"))
+        {
         	dataFilePath = dataFilePath.replace("/", "\\");
+        }
         
         String action = request.getParameter("action");
         
@@ -171,6 +173,19 @@ public class MahoutTaste extends HttpServlet {
             // Run Action
             SimUserPearsonCorrelation simUserPearsonCorrelation = new SimUserPearsonCorrelation();
             String outputString = simUserPearsonCorrelation.get( recsFile, userId, numRec, neighborhoodSize );
+            // Output results
+            this.output( response, outputString );                                                           
+        }
+        if( action.equals( "SimUserSpearmanCorrelation" ) ){
+
+            // Get Inputs
+            String recsFile = dataFilePath + request.getParameter("file");
+            String userId = request.getParameter("userId");
+            String numRec = request.getParameter("numRec");
+            String neighborhoodSize = request.getParameter("neighborhoodSize");
+            // Run Action
+            SimUserSpearmanCorrelation simUserSpearmanCorrelation = new SimUserSpearmanCorrelation();
+            String outputString = simUserSpearmanCorrelation.get( recsFile, userId, numRec, neighborhoodSize );
             // Output results
             this.output( response, outputString );                                                           
         }
