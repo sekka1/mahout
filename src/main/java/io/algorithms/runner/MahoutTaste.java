@@ -4,7 +4,7 @@ import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
-import io.algorithms.clustering.mahout.SimClustering;
+//import io.algorithms.clustering.mahout.SimClustering;
 import io.algorithms.recommenders.mahout.*;
 import io.algorithms.utils.OS;
 
@@ -23,7 +23,19 @@ public class MahoutTaste extends HttpServlet {
         
         String action = request.getParameter("action");
         
-       
+        
+        /*
+        if( action.equals( "Cluster" ) ){
+            
+        	// Get Inputs
+            SimClustering simClustering = new SimClustering();
+            String outputString = simClustering.get();
+            
+            // Output results
+            this.output( response, outputString );
+        }
+        */
+        
         if( action.equals( "SimItemCityBlock" ) ){
 
             // Get Inputs
