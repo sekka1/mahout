@@ -61,7 +61,6 @@ public class SimItemCityBlock {
             //Create an Item Based Recommender
             ItemBasedRecommender recommender =
                 new GenericItemBasedRecommender(dataModel, itemSimilarity);
-
             //Get the recommendations                                                                     
             List<RecommendedItem> recommendations = recommender.mostSimilarItems(itemId, numRec);
 

@@ -4,29 +4,26 @@ import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
+import io.algorithms.clustering.mahout.SimClustering;
 import io.algorithms.recommenders.mahout.*;
+import io.algorithms.utils.OS;
 
 public class MahoutTaste extends HttpServlet {
-
+	
+	
+	
     public void doGet(HttpServletRequest request, HttpServletResponse response)
     throws IOException, ServletException
     {
-        //String dataFilePath = "/opt/Data-Sets/Automation/";
-    	String dataFilePath = "./data/"; 
-        //Forward Slashes can't be used by windows
-        
-        String os = System.getProperty("os.name");
-        if (os!=null && os.toLowerCase().contains("win") || request.getParameter("path_type").equals("windows"))
+        if (request.getParameter("path_type") != null && request.getParameter("path_type").equals("windows"))
         {
-        	dataFilePath = dataFilePath.replace("/", "\\");
+        	OS.getInstance().setIsWin(true);
         }
+        String dataFilePath = OS.getInstance().isWin() ? ".\\data\\" : "/opt/Data-Sets/Automation/";
         
         String action = request.getParameter("action");
         
-        if (action.equals("DebugALL"))
-        {
-        	
-        }
+       
         if( action.equals( "SimItemCityBlock" ) ){
 
             // Get Inputs
