@@ -3,21 +3,31 @@ package io.algorithms.recommenders.mahout;
 import org.apache.commons.cli2.OptionException;
 import org.apache.mahout.cf.taste.common.TasteException;
 import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
-import org.apache.mahout.cf.taste.model.DataModel;
-import org.apache.mahout.cf.taste.impl.model.GenericBooleanPrefDataModel;
 import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
 import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
-import org.apache.mahout.cf.taste.impl.recommender.GenericBooleanPrefItemBasedRecommender;
-import org.apache.mahout.cf.taste.impl.similarity.TanimotoCoefficientSimilarity;
+import org.apache.mahout.cf.taste.impl.similarity.AbstractItemSimilarity;
+import org.apache.mahout.cf.taste.impl.similarity.CachingItemSimilarity;
+import org.apache.mahout.cf.taste.impl.similarity.CityBlockSimilarity;
+import org.apache.mahout.cf.taste.impl.similarity.LogLikelihoodSimilarity;
 import org.apache.mahout.cf.taste.recommender.Recommender;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.cf.taste.recommender.ItemBasedRecommender;
 import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import java.util.*;
-import java.io.*;
 
-public class SimItemTanimotoCoefficient {
+import java.io.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
+
+//import net.sf.json-lib.*;
+
+public class SimItemCityBlock {
 
     public static void main(String ... args){
         System.out.println(args[0]);
@@ -30,33 +40,27 @@ public class SimItemTanimotoCoefficient {
 
         if( action.equals( "get" ) ){
         // Run the get method
-        	SimItemTanimotoCoefficient simItemTanimotoCoefficient = new SimItemTanimotoCoefficient();
-            String results = simItemTanimotoCoefficient.get( input_file, input_itemId, input_numRec );
+        	SimItemCityBlock simItemCityBlock = new SimItemCityBlock();
+            String results = simItemCityBlock.get( input_file, input_itemId, input_numRec );
             System.out.println( results );
         }
     }
     public String get( String input_file, String input_itemId, String input_numRec )
     {
         String data = "[";
-    
-        //create the data model
+
         try{
-            String recsFile = input_file;                                                                    
-            long itemId = Long.parseLong( input_itemId );                                                    
+            String recsFile = input_file;
+            long itemId = Long.parseLong( input_itemId );
             int numRec = Integer.parseInt( input_numRec );
 
-            DataModel model = new GenericBooleanPrefDataModel(
-                    GenericBooleanPrefDataModel.toDataMap(
-                        new FileDataModel(new File(recsFile))));
-
+            //create the data model
+            FileDataModel dataModel = new FileDataModel(new File(recsFile));
             //Create an ItemSimilarity
-            ItemSimilarity itemSimilarity = new TanimotoCoefficientSimilarity(model);
-
+            ItemSimilarity itemSimilarity = new CityBlockSimilarity(dataModel);
             //Create an Item Based Recommender
             ItemBasedRecommender recommender =
-                //new GenericItemBasedRecommender(model, itemSimilarity);
-                new GenericBooleanPrefItemBasedRecommender(model, itemSimilarity);
-
+                new GenericItemBasedRecommender(dataModel, itemSimilarity);
             //Get the recommendations                                                                     
             List<RecommendedItem> recommendations = recommender.mostSimilarItems(itemId, numRec);
 
@@ -68,12 +72,13 @@ public class SimItemTanimotoCoefficient {
 
             data = data.substring(0, data.length() - 1);
 
-        }catch(Exception e){                                                                                                          
-            System.out.println("Error" + e.getMessage() );                                                                        
+        } catch(Exception e){
+            System.out.println("gkan error" + e.getMessage() );
         }
-    
+
         data += "]";
 
         return data;
+
     }
 }
