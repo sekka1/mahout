@@ -13,8 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import io.algorithms.datastore.AmazonDataStore;
-import io.algorithms.datastore.DataStore;
+import io.algorithms.entity.Algorithm;
 import io.algorithms.entity.AlgorithmException;
 import io.algorithms.entity.DataSetEntity;
 import io.algorithms.entity.DataSetEntityBase;
@@ -29,22 +28,19 @@ import org.apache.mahout.cf.taste.impl.similarity.TanimotoCoefficientSimilarity;
 import org.apache.mahout.cf.taste.model.DataModel;
 import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
 
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-
 /**
  * Trains an item based recommender.
  */
-public class ItemSimilarityRecommenderTrainer {
+public class ItemSimilarityRecommenderTrainer implements Algorithm {
     /**
      * Different item similarity metrics.
      */
-    private static enum ItemSimilarityMetric {
+    public static enum ItemSimilarityMetric {
         LOG_LIKELIHOOD,
         TANIMOTO_COEFFICIENT
     }
 
-    private static final String ITEM_SIMILARITY_METRIC = "ItemSimilarityMetric";
+    public static final String ITEM_SIMILARITY_METRIC = "ItemSimilarityMetric";
     
     
     /* (non-Javadoc)
@@ -82,7 +78,7 @@ public class ItemSimilarityRecommenderTrainer {
         ItemSimilarityMetric itemSimilarityMetric = ItemSimilarityMetric.valueOf(parameters.getProperty(ITEM_SIMILARITY_METRIC));
         DataSetEntity inputDataSet = inputDataSets.get(0);
         File file = inputDataSet.getDataFile();
-        
+        List<DataSetEntity> outputList = new ArrayList<DataSetEntity>(1);
         try {
             DataModel model = new FileDataModel(file);
             // get appropriate item similarity implementation
@@ -105,14 +101,15 @@ public class ItemSimilarityRecommenderTrainer {
             final double[][] matrix = new double[itemIdList.size()][itemIdList.size()];
             final long[] itemIdArray = new long[itemIdList.size()];
             for (int i = 0; i < itemIdArray.length; i++) {
-                for (int j = i+1; j < itemIdArray.length; j++) {
-                    double similarityValue = similarity.itemSimilarity(i, j);
+                for (int j = 0; j < i; j++) {
+                    double similarityValue = similarity.itemSimilarity(i+1, j+1);
                     matrix[i][j] = similarityValue;
                     matrix[j][i] = similarityValue;
+                    matrix[i][i] = 0;
                 }
             }
 
-            File outputFile = new File(String.valueOf(System.currentTimeMillis()));
+            File outputFile = new File(inputDataSet.getFileSystemName() + "." + System.currentTimeMillis());
             BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
             for (int i = 0; i < itemIdArray.length; i++) {
                 for (int j = 0; j < itemIdArray.length; j++) {
@@ -125,12 +122,17 @@ public class ItemSimilarityRecommenderTrainer {
             // now create output data set
             DataSetEntityBase output = new DataSetEntityBase();
             output.setName(outputFile.getName());
-            output.putDataFile(outputFile);
+            output.setFileSystemName(outputFile.getName());
+            output.setLocation(inputDataSet.getLocation());
+            output.persist();
+            output.putDataFile(outputFile); // push
+            outputList.add(output);
             
+            outputFile.delete(); // has been pushed
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        return outputList;
     }
 
     private static ItemSimilarity getItemSimilarity(ItemSimilarityMetric itemSimilarityType, DataModel model)
@@ -140,5 +142,13 @@ public class ItemSimilarityRecommenderTrainer {
         case TANIMOTO_COEFFICIENT: new TanimotoCoefficientSimilarity(model);
         default: return null;
         }
+    }
+
+    /* (non-Javadoc)
+     * @see io.algorithms.entity.Algorithm#getImplementationClass()
+     */
+    @Override
+    public String getImplementationClass() {
+        return "Algorithms_simItemNoPrefTrainer";
     }
 }
