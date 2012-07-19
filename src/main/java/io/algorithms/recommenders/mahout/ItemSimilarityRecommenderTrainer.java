@@ -79,9 +79,13 @@ public class ItemSimilarityRecommenderTrainer implements Algorithm {
         DataSetEntity inputDataSet = inputDataSets.get(0);
         File file = inputDataSet.getDataFile();
         List<DataSetEntity> outputList = new ArrayList<DataSetEntity>(1);
+
+        DataModel model = new FileDataModel(file);
+        // get appropriate item similarity implementation
+        // store item similarity in matrix
+        double[][] matrix;
+        long[] itemIdArray;
         try {
-            DataModel model = new FileDataModel(file);
-            // get appropriate item similarity implementation
             ItemSimilarity similarity = getItemSimilarity(itemSimilarityMetric, model);
             if (similarity == null) {
                 throw new AlgorithmException("Cannot find item similarity algorithm for [" + itemSimilarityMetric + "]");
@@ -97,41 +101,40 @@ public class ItemSimilarityRecommenderTrainer implements Algorithm {
                 itemIdList.add(itemIds.nextLong());
             }
 
-            // store item similarity in matrix
-            final double[][] matrix = new double[itemIdList.size()][itemIdList.size()];
-            final long[] itemIdArray = new long[itemIdList.size()];
+            matrix = new double[itemIdList.size()][itemIdList.size()];
+            itemIdArray = new long[itemIdList.size()];
             for (int i = 0; i < itemIdArray.length; i++) {
+                matrix[i][i] = 0;
                 for (int j = 0; j < i; j++) {
                     double similarityValue = similarity.itemSimilarity(i+1, j+1);
-                    matrix[i][j] = similarityValue;
-                    matrix[j][i] = similarityValue;
-                    matrix[i][i] = 0;
+                    matrix[i][j] = matrix[j][i] = similarityValue;
                 }
             }
-
-            File outputFile = new File(inputDataSet.getFileSystemName() + "." + System.currentTimeMillis());
-            BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
-            for (int i = 0; i < itemIdArray.length; i++) {
-                for (int j = 0; j < itemIdArray.length; j++) {
-                    bw.write(String.valueOf(matrix[i][j]));
-                    if (j < itemIdArray.length - 1) { bw.write(","); }
-                }
-                bw.write("\n");
-            }
-            
-            // now create output data set
-            DataSetEntityBase output = new DataSetEntityBase();
-            output.setName(outputFile.getName());
-            output.setFileSystemName(outputFile.getName());
-            output.setLocation(inputDataSet.getLocation());
-            output.persist();
-            output.putDataFile(outputFile); // push
-            outputList.add(output);
-            
-            outputFile.delete(); // has been pushed
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (TasteException e) {
+            throw new AlgorithmException(e);
         }
+
+        // create a temp file with the output
+        File outputFile = new File("itemsimilaritymatrix." + inputDataSet.getFileSystemName() + "." + System.currentTimeMillis());
+        BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
+        for (int i = 0; i < itemIdArray.length; i++) {
+            for (int j = 0; j < i; j++) { // only need to write half the matrix
+                bw.write(String.valueOf(matrix[i][j]));
+                if (j < i - 1) { bw.write(","); }
+            }
+            bw.write("\n");
+        }
+        
+        // now create output data set
+        DataSetEntityBase output = new DataSetEntityBase();
+        output.setName(outputFile.getName());
+        output.setFileSystemName(outputFile.getName());
+        output.setLocation(inputDataSet.getLocation());
+        output.persist();
+        output.putDataFile(outputFile); // push
+        outputList.add(output);
+        
+        outputFile.delete(); // has been pushed
         return outputList;
     }
 
