@@ -1,4 +1,4 @@
-package io.algorithms.recommenders.runner;
+package io.algorithms.runner;
 
 import java.io.*;
 import javax.servlet.*;

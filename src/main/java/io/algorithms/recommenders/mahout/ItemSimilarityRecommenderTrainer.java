@@ -7,25 +7,18 @@ package io.algorithms.recommenders.mahout;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
-import io.algorithms.common.resource.Algorithm;
-import io.algorithms.common.resource.AlgorithmException;
-import io.algorithms.common.resource.InvalidDataSetException;
-import io.algorithms.common.resource.InvalidParameterException;
+import io.algorithms.entity.Algorithm;
+import io.algorithms.entity.AlgorithmException;
 import io.algorithms.entity.DataSetEntity;
+import io.algorithms.entity.DataSetEntityBase;
+import io.algorithms.entity.InvalidDataSetException;
+import io.algorithms.entity.InvalidParameterException;
 
 import org.apache.mahout.cf.taste.common.TasteException;
 import org.apache.mahout.cf.taste.impl.common.LongPrimitiveIterator;
@@ -42,12 +35,13 @@ public class ItemSimilarityRecommenderTrainer implements Algorithm {
     /**
      * Different item similarity metrics.
      */
-    private static enum ItemSimilarityMetric {
+    public static enum ItemSimilarityMetric {
         LOG_LIKELIHOOD,
         TANIMOTO_COEFFICIENT
     }
 
-    private static final String ITEM_SIMILARITY_METRIC = "ItemSimilarityMetric";
+    public static final String ITEM_SIMILARITY_METRIC = "ItemSimilarityMetric";
+    
     
     /* (non-Javadoc)
      * @see io.algorithms.common.resource.Algorithm#validate(java.util.List, org.apache.mahout.common.Parameters)
@@ -84,9 +78,14 @@ public class ItemSimilarityRecommenderTrainer implements Algorithm {
         ItemSimilarityMetric itemSimilarityMetric = ItemSimilarityMetric.valueOf(parameters.getProperty(ITEM_SIMILARITY_METRIC));
         DataSetEntity inputDataSet = inputDataSets.get(0);
         File file = inputDataSet.getDataFile();
+        List<DataSetEntity> outputList = new ArrayList<DataSetEntity>(1);
+
         DataModel model = new FileDataModel(file);
+        // get appropriate item similarity implementation
+        // store item similarity in matrix
+        double[][] matrix;
+        long[] itemIdArray;
         try {
-            // get appropriate item similarity implementation
             ItemSimilarity similarity = getItemSimilarity(itemSimilarityMetric, model);
             if (similarity == null) {
                 throw new AlgorithmException("Cannot find item similarity algorithm for [" + itemSimilarityMetric + "]");
@@ -94,7 +93,7 @@ public class ItemSimilarityRecommenderTrainer implements Algorithm {
             
             LongPrimitiveIterator itemIds = model.getItemIDs();
             if (itemIds == null) {
-                throw new AlgorithmException("Cannot find item ids for dataset id [" + inputDataSet.getId() + "]");
+                throw new AlgorithmException("Cannot find item ids for dataset [" + file + "]");
             }
             
             List<Long> itemIdList = new ArrayList<Long>();
@@ -102,51 +101,41 @@ public class ItemSimilarityRecommenderTrainer implements Algorithm {
                 itemIdList.add(itemIds.nextLong());
             }
 
-            // store item similarity in matrix
-            final double[][] matrix = new double[itemIdList.size()][itemIdList.size()];
-            final long[] itemIdArray = new long[itemIdList.size()];
+            matrix = new double[itemIdList.size()][itemIdList.size()];
+            itemIdArray = new long[itemIdList.size()];
             for (int i = 0; i < itemIdArray.length; i++) {
-                for (int j = i+1; j < itemIdArray.length; j++) {
-                    double similarityValue = similarity.itemSimilarity(i, j);
-                    matrix[i][j] = similarityValue;
-                    matrix[j][i] = similarityValue;
+                matrix[i][i] = 0;
+                for (int j = 0; j < i; j++) {
+                    double similarityValue = similarity.itemSimilarity(i+1, j+1);
+                    matrix[i][j] = matrix[j][i] = similarityValue;
                 }
             }
-
-            // write similarity matrix to output dataset
-            PipedInputStream pis = new PipedInputStream();
-            PipedOutputStream pos = new PipedOutputStream(pis);
-            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(pos));
-            Callable task = new Callable() {
-                public Object call() throws Exception {
-                    for (int i = 0; i < itemIdArray.length; i++) {
-                        for (int j = 0; j < itemIdArray.length; j++) {
-                            bw.write(String.valueOf(matrix[i][j]));
-                        }
-                    }
-                    bw.close();
-                    return null;
-                }
-            };
-
-            DataSetEntity outputDataSet = new DataSetEntity();
-            outputDataSet.putDataStream(pis);
-
-            ExecutorService executor = Executors.newFixedThreadPool(1);
-            Future f = executor.submit(task);
-            try {
-                executor.awaitTermination(10, TimeUnit.MINUTES);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            // TODO: need to persist outputDataSet
-
-            return f.isDone()? Arrays.asList(outputDataSet): null;
-
         } catch (TasteException e) {
             throw new AlgorithmException(e);
         }
+
+        // create a temp file with the output
+        File outputFile = new File("itemsimilaritymatrix." + inputDataSet.getFileSystemName() + "." + System.currentTimeMillis());
+        BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
+        for (int i = 0; i < itemIdArray.length; i++) {
+            for (int j = 0; j < i; j++) { // only need to write half the matrix
+                bw.write(String.valueOf(matrix[i][j]));
+                if (j < i - 1) { bw.write(","); }
+            }
+            bw.write("\n");
+        }
+        
+        // now create output data set
+        DataSetEntityBase output = new DataSetEntityBase();
+        output.setName(outputFile.getName());
+        output.setFileSystemName(outputFile.getName());
+        output.setLocation(inputDataSet.getLocation());
+        output.persist();
+        output.putDataFile(outputFile); // push
+        outputList.add(output);
+        
+        outputFile.delete(); // has been pushed
+        return outputList;
     }
 
     private static ItemSimilarity getItemSimilarity(ItemSimilarityMetric itemSimilarityType, DataModel model)
@@ -156,5 +145,13 @@ public class ItemSimilarityRecommenderTrainer implements Algorithm {
         case TANIMOTO_COEFFICIENT: new TanimotoCoefficientSimilarity(model);
         default: return null;
         }
+    }
+
+    /* (non-Javadoc)
+     * @see io.algorithms.entity.Algorithm#getImplementationClass()
+     */
+    @Override
+    public String getImplementationClass() {
+        return "Algorithms_simItemNoPrefTrainer";
     }
 }
