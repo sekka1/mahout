@@ -36,6 +36,7 @@ public class MahoutTaste extends HttpServlet {
         }
         */
         
+        if (action == null) { response.sendError(400, "Missing parameter 'action'"); return; }
         
         if( action.equals( "SimItemCityBlock" ) ){
 
