@@ -24,7 +24,7 @@
     </filter-mapping>
     <servlet>
         <servlet-name>RunnerMahoutTaste</servlet-name>
-        <servlet-class>io.algorithms.recommenders.runner.MahoutTaste</servlet-class>
+        <servlet-class>io.algorithms.runner.MahoutTaste</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>RunnerMahoutTaste</servlet-name>
