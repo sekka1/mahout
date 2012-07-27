@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.mahout.classifier.sgd.AdaptiveLogisticRegression;
@@ -65,22 +66,24 @@ public class LogisticRegressionClassifier implements Algorithm {
      * @return The name of the file containing trained parameters
      * @throws IOException if something bad happens with IO
      */
-    public String train(BufferedReader in, int classFeatureColumn) throws IOException {
+    public String train(BufferedReader in, String targetColumnName, Map<String, String> columnNameToTypeMap) throws IOException {
 
-//        AdaptiveLogisticRegression learner = new AdaptiveLogisticRegression();
-//        FeatureVectorEncoder encoder = new StaticWordValueEncoder("word_encoder");
-//        
-//        for ()
-//        Vector v = new RandomAccessSparseVector();
-//
-//        encoder.addToVector(word, v);
-//        learner.train();
-//        
-//        // output trained parameters to file and return it
-//        File output = new File(input + ".train." + System.currentTimeMillis());
-//        learner.write(new RandomAccessFile(output, "w"));
-//        return output.getName();
-        return null;
+        Vector v = new RandomAccessSparseVector();
+        String line = null;
+        while ((line = in.readLine()) != null) {
+            
+        }
+        
+        AdaptiveLogisticRegression learner = new AdaptiveLogisticRegression();
+        FeatureVectorEncoder encoder = new StaticWordValueEncoder("word_encoder");
+
+        encoder.addToVector(word, v);
+        learner.train();
+        
+        // output trained parameters to file and return it
+        File output = new File(input + ".train." + System.currentTimeMillis());
+        learner.write(new RandomAccessFile(output, "w"));
+        return output.getName();
     }
     
 }
