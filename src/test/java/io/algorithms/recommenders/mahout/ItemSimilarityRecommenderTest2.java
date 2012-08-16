@@ -40,7 +40,7 @@ public class ItemSimilarityRecommenderTest2 extends AbstractTransactionalJUnit4S
     
     static {
     }
-    /*
+    
     @Test
     public void tryCluster()
     {
@@ -51,7 +51,7 @@ public class ItemSimilarityRecommenderTest2 extends AbstractTransactionalJUnit4S
         System.out.println( outputString );
         assertFalse(outputString.contains("err") || outputString.contains("fail") || outputString.length() < 3);
     }
-    */
+    
     
     
    

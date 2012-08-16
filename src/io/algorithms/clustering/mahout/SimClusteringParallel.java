@@ -132,8 +132,8 @@ public class SimClusteringParallel {
 			String data = "[";
 	        try{
 			int k = Integer.parseInt(numClusters);
-			List<Vector> vectors = getPoints(points);
-			//List<Vector> vectors = getPointsFromFile(CoordinatePairFile);
+			//List<Vector> vectors = getPoints(points);
+			List<Vector> vectors = getPointsFromFile(CoordinatePairFile);
 			File testData = new File("testdata");
 			if (!testData.exists()) {
 				testData.mkdir();
