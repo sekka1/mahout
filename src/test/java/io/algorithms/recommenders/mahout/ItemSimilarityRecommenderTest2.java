@@ -36,7 +36,7 @@ import org.springframework.test.context.junit4.AbstractTransactionalJUnit4Spring
 @ContextConfiguration(locations = "classpath:/META-INF/spring/applicationContext*.xml")
 @Configurable
 public class ItemSimilarityRecommenderTest2 extends AbstractTransactionalJUnit4SpringContextTests {
-    private static final String FOLDER = "src/test/resources", INPUT_FILE = "rec_1075", CLUSTER_FILE = "clusterPoints.txt";
+    private static final String FOLDER = "src/test/resources", INPUT_FILE = "rec_1075", CLUSTER_FILE = "clusterPoints2.txt";
     
     static {
     }

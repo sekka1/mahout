@@ -7,6 +7,7 @@ import java.awt.Color;
 import java.awt.geom.Ellipse2D;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -125,6 +126,11 @@ public class SimClusteringParallel {
 			return points;
 		}
 		
+		FileFilter fileFilter = new FileFilter() {
+		    public boolean accept(File file) {
+		        return file.isDirectory();
+		    }
+		};
 		
 		@SuppressWarnings("null")
 		public String get( String CoordinatePairFile, String numClusters ) {
@@ -156,14 +162,15 @@ public class SimClusteringParallel {
 			ArrayList<Cluster> cList = new ArrayList<Cluster>();
 			for (int i = 0; i < k; i++) {
 				Vector vec = vectors.get(i);
-				Cluster cluster = new Cluster(
+				Cluster c = new Cluster(
 				vec, i, new EuclideanDistanceMeasure());
-				if (cluster!=null)
+				if (c!=null)
 				{
-					cList.add( cluster );
+					cList.add( c );
 					//data += "added a cluster";
+					
 				}
-				writer.append(new Text(cluster.getIdentifier()), cluster);
+				writer.append(new Text(c.getIdentifier()), c);
 			}
 			
 			
@@ -183,16 +190,45 @@ public class SimClusteringParallel {
 			IntWritable key = new IntWritable();
 			WeightedVectorWritable value = new WeightedVectorWritable();
 			
+			
+			//for (Cluster c : cList) {
+		     //   System.out.println( "after " + Cluster.formatCluster(c) + " and " +  c.getId());
+		    //  }
+			
 			while (reader.next(key, value)) {
 			System.out.println(
 			value.toString() + " belongs to cluster "
 			+ key.toString());
+			
 			
 			data += value.toString() + " belongs to cluster "
 					+ key.toString();
 			}
 			reader.close();
 			
+			//get the largest cluster dir 
+			//File dir = new File("directoryName");
+
+			//String[] children = dir.list();
+			//for (String s : children)
+			//System.out.println(s);
+			
+			 SequenceFile.Reader readerClusters
+				= new SequenceFile.Reader(fs,
+				new Path("output/" + Cluster.CLUSTERS_DIR + "3"
+				+ "/part-r-00000"), conf);
+				
+		        Text textClusters = new Text();
+				Cluster clusterClusters = new Cluster();
+				
+				while (readerClusters.next(textClusters, clusterClusters)) {
+					System.out.println(clusterClusters.toString());
+					data += clusterClusters.toString();
+					//data += textClusters.toString() + " has data of "
+					//		+ clusterClusters.toString();
+					}
+				readerClusters.close();
+					
 			}
 			catch( Throwable e )
 			{
