@@ -3,8 +3,8 @@
 * $Author: rajiv$
 * $Date: May 5, 2012$
 */
-package io.algorithms.recommenders.mahout;
-
+package test.java.io.algorithms.recommenders.mahout;
+/*
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,20 +28,20 @@ import io.algorithms.entity.AlgorithmException;
 import io.algorithms.entity.AlgorithmRegister;
 import io.algorithms.entity.DataSetEntity;
 import io.algorithms.entity.DataSetEntityBase;
+import io.algorithms.recommenders.mahout.ItemSimilarityRecommenderTrainer;
+
 import org.junit.Test;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 
-/**
- * Tests item similarity based recommender trainers.
- */
 @ContextConfiguration(locations = "classpath:/META-INF/spring/applicationContext*.xml")
 @Configurable
-public class ItemSimilarityRecommenderTest extends AbstractTransactionalJUnit4SpringContextTests {
-    private static final String FOLDER = "src/test/resources", INPUT_FILE = "rec_1908";
+*/
+public class ItemSimilarityRecommenderTest {// extends AbstractTransactionalJUnit4SpringContextTests {
+//    private static final String FOLDER = "src/test/resources", INPUT_FILE = "rec_1908";
     
-
+/*
     static {
         // TODO: This is test code. Please remove!
         DataStore s3dataStore = new AmazonDataStore(new AmazonS3Client(new BasicAWSCredentials("AKIAJO6OOIFG3LCMZPGA", "sQNUF++7eFhh8JIlTNgUnKKx3HdOhRmN+V7pto5F")));
@@ -133,4 +133,5 @@ public class ItemSimilarityRecommenderTest extends AbstractTransactionalJUnit4Sp
 //        recommendation.remove();
         inputDataSets = null;
     }
+    */
 }
