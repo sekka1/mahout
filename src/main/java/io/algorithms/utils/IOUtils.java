@@ -4,21 +4,26 @@
 */
 package io.algorithms.utils;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.mahout.classifier.sgd.CsvRecordFactory;
 import org.apache.mahout.classifier.sgd.RecordFactory;
 import org.apache.mahout.math.Vector;
-import org.apache.mahout.vectorizer.encoders.ContinuousValueEncoder;
-import org.apache.mahout.vectorizer.encoders.FeatureVectorEncoder;
-import org.apache.mahout.vectorizer.encoders.StaticWordValueEncoder;
 
 import com.google.common.base.Preconditions;
+import com.googlecode.jcsv.CSVStrategy;
+import com.googlecode.jcsv.reader.CSVReader;
+import com.googlecode.jcsv.reader.internal.CSVReaderBuilder;
+import com.googlecode.jcsv.reader.internal.DefaultCSVEntryParser;
 
 /**
  * Utilities for reading and persisting stuff. 
@@ -32,15 +37,16 @@ public final class IOUtils {
      * @param targetCategories list of strings that the target variable can have
      * @return record factory instance.
      */
-    public static RecordFactory createRecordFactoryForInputFormat(final Map<String, String> columnNameToTypeMap,
+    public static CsvRecordFactory createRecordFactoryForInputFormat(final Map<String, String> columnNameToTypeMap,
             final String targetColumnName, final List<String> targetClasses) {
-        RecordFactory factory = new RajivsSuperCSVRecordFactory(targetColumnName, columnNameToTypeMap);
+        CsvRecordFactory factory = new CsvRecordFactory(targetColumnName, columnNameToTypeMap);
         factory.defineTargetCategories(targetClasses);
         factory.includeBiasTerm(true);
         return factory;
     }
     
     private static final class RajivsSuperCSVRecordFactory implements RecordFactory {
+        final ConcurrentMap<String, Integer> dict = new ConcurrentHashMap<String, Integer>();
         final String targetColumnName;
         final Map<String, String> columnNameToTypeMap;
         List<String> targetCategories;
@@ -88,26 +94,47 @@ public final class IOUtils {
         @Override
         public int processLine(String s, Vector vector) {
             Preconditions.checkNotNull(s);
+            System.out.println(s);
             Preconditions.checkNotNull(vector);
             Preconditions.checkArgument(vector.size() == columnNames.length);
-            String[] values = s.split(",");
-            Preconditions.checkArgument(values.length == columnNames.length);
+            s = s.replace("\\\"", "");
+            CSVReader<String[]> reader = new CSVReaderBuilder<String[]>(new StringReader(s)).strategy(CSVStrategy.UK_DEFAULT).entryParser(new DefaultCSVEntryParser()).build();
  
-            vector.set(0, 1);
             int output = -1;
 
-            // TODO: Fix. Target may not be the last column
-            for (int index = 0; index < values.length; index++) {
-                String value = values[index];
-                String columnName = columnNames[index];
-                String type = columnNameToTypeMap.get(columnName);
-                double valueDouble = type == "word" ? value.hashCode() : Double.parseDouble(value);
-                boolean target = columnName.equals(targetColumnName);
-                if (!target) {
-                    vector.set(index + 1, valueDouble);
-                } else if (targetCategories.contains(value)){
-                    return targetCategories.indexOf(value);
+            try {
+                String[] values = reader.readNext();
+                Preconditions.checkArgument(values.length == columnNames.length);
+                // TODO: Fix. Target may not be the last column
+                vector.set(values.length - 1, 1);
+                for (int index = 0; index < values.length; index++) {
+                    String value = values[index];
+                    String columnName = columnNames[index];
+                    String type = columnNameToTypeMap.get(columnName);
+                    double valueDouble = 0;
+                    if (type.equals("word")) {
+                        synchronized (dict) {
+                            if (dict.containsKey(value)) {
+                                valueDouble = dict.get(value);
+                            } else {
+                                dict.put(value, dict.size());
+                                valueDouble = dict.size();
+                            }
+                        }
+                    } else if (type.equals("numeric")) {
+                        valueDouble = value.isEmpty() ? 0 : Double.parseDouble(value.replaceAll(",", ""));
+                    }
+                    boolean target = columnName.equals(targetColumnName);
+                    if (!target) {
+                        vector.set(index, valueDouble);
+                    } else if (targetCategories.contains(value)){
+                        return targetCategories.indexOf(value);
+                    }
                 }
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
             return output;
         }
@@ -149,8 +176,12 @@ public final class IOUtils {
          */
         @Override
         public void firstLine(String s) {
-            columnNames = s.split(",");
+            CSVReader<String[]> reader = new CSVReaderBuilder<String[]>(new StringReader(s)).strategy(CSVStrategy.UK_DEFAULT).entryParser(new DefaultCSVEntryParser()).build();
+            try {
+                columnNames = reader.readNext();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
-
 }

@@ -1,10 +1,20 @@
 package io.algorithms.runner;
 
 import java.io.*;
+import java.util.List;
+import java.util.Map;
+
 import javax.servlet.*;
 import javax.servlet.http.*;
 
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
+import org.springframework.aop.TargetClassAware;
+
+import com.google.common.base.Preconditions;
+
 //import io.algorithms.clustering.mahout.SimClustering;
+import io.algorithms.classification.LogisticRegressionClassifier;
 import io.algorithms.recommenders.mahout.*;
 import io.algorithms.utils.OS;
 
@@ -22,7 +32,8 @@ public class MahoutTaste extends HttpServlet {
         String dataFilePath = OS.getInstance().isWin() ? ".\\data\\" : "/opt/Data-Sets/Automation/";
         
         String action = request.getParameter("action");
-        
+
+        log("action = " + action);
         
         /*
         if( action.equals( "Cluster" ) ){
@@ -261,6 +272,36 @@ public class MahoutTaste extends HttpServlet {
             String outputString = simUserLogLikelihoodNoPrefEvaluator.get( recsFile, userId, numRec, neighborhoodSize );
             // Output results
             this.output( response, outputString );
+        }
+        if (action.equals("ClassifierLogisticRegression")) {
+            String requestFile = request.getParameter("file");
+            String requestColumnNameToTypeMap = request.getParameter("columnNameToTypeMap");
+            String requestTargetColumnName = request.getParameter("targetColumnName");
+            String requestTargetClasses = request.getParameter("targetClasses");
+            String requestQuery = request.getParameter("query");
+            if (requestFile == null || requestColumnNameToTypeMap == null || requestTargetColumnName == null
+                    || requestTargetClasses == null || requestQuery == null) {
+                String error = "Need the following request parameters 'file' = path to datafile in CSV format (1st line has column names), "
+                        + "'columnNameToTypeMap' = json object with keys representing column names and values are one of 'word' or 'numeric', "
+                        + "'targetColumnName' = name of the target column, "
+                        + "'targetClasses' = String values of target classes, "
+                        + "'query' = query string";
+                log(error);
+                response.sendError(400, error);
+                return;
+            }
+            log("file = " + requestFile + " columnNameToTypeMap = " + requestColumnNameToTypeMap + " targetColumnName = "
+                    + requestTargetColumnName + " targetClasses = " + requestTargetClasses + " query = " + requestQuery);
+            // Get Inputs
+            File trainingFile = new File(dataFilePath + requestFile);
+            Map<String, String> columnNameToTypeMap = new ObjectMapper().readValue(requestColumnNameToTypeMap, new TypeReference<Map<String, String>>() { });
+            List<String> targetClasses = new ObjectMapper().readValue(requestTargetClasses, new TypeReference<List<String>>() { });
+            
+            // Run Action
+            LogisticRegressionClassifier classifier = new LogisticRegressionClassifier();
+            String output = classifier.trainAndClassify(trainingFile, columnNameToTypeMap, requestTargetColumnName, targetClasses, requestQuery);
+            // Output results
+            this.output( response, output);
         }
 
     }
