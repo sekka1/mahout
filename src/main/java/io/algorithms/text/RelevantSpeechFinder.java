@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -22,6 +23,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -37,21 +39,42 @@ import com.googlecode.jcsv.reader.internal.CSVReaderBuilder;
 import com.googlecode.jcsv.reader.internal.DefaultCSVEntryParser;
 
 /**
- * Searches an index for a term..
+ * Finds speeches given search terms.
  */
 public class RelevantSpeechFinder {
+    
     static final Version LUCENE_CURRENT = Version.LUCENE_40;
 
-    public void findRelevantSpeeches(File csvFile, String searchField, String word) throws IOException, ParseException {
+    /**
+     * Returns speeches that are relevant to a given search term.
+     * @param csvFile CSV file containing all the speeches. It must have the following columns: Rank,Speaker,Title,Audio,Transcript
+     * @param word The word whose synomyms are to be searched across the speeches
+     * @return the search results as a map in the following format:
+     *          foreach word w in input text
+     *               for each word v related to w
+     *                   list of documents in descending order of relevance to v
+     *                   (each document is returned as a Map<FieldName, Value>
+     *               end
+     *            end
+     * @throws IOException
+     * @throws ParseException
+     */
+    public Map<String, Map<String, Map<Double, Map<String, String>>>> findRelevantSpeeches(File csvFile, String queryText) throws IOException, ParseException {
         Analyzer analyzer = new StandardAnalyzer(LUCENE_CURRENT);
         Directory index = index(analyzer, csvFile);
-        List<String> relatedWords = getRelatedWords(word);
-        Map<String, List<ScoreDocument>> results = new HashMap<String, List<ScoreDocument>>();
-        for (String relatedWord : relatedWords) {
-            List<ScoreDocument> searchResults = search(analyzer, index, searchField, relatedWord);
-            results.put(relatedWord, searchResults);
+        Map<String, Map<String, Map<Double, Map<String, String>>>> results = new HashMap<String, Map<String, Map<Double, Map<String, String>>>>();
+        StringTokenizer st = new StringTokenizer(queryText);
+        while (st.hasMoreTokens()) {
+            String word = st.nextToken();
+            List<String> relatedWords = getRelatedWords(word);
+            Map<String, Map<Double, Map<String, String>>> partialResults = new HashMap<String, Map<Double, Map<String, String>>>();
+            for (String relatedWord : relatedWords) {
+                Map<Double, Map<String, String>> searchResults = search(analyzer, index, "Transcript", relatedWord);
+                partialResults.put(relatedWord, searchResults);
+            }
+            results.put(word, partialResults);
         }
-//        return result;
+        return results;
     }
     
     /**
@@ -59,7 +82,7 @@ public class RelevantSpeechFinder {
      * @param word
      * @return
      */
-    private List<String> getRelatedWords(String word) {
+    List<String> getRelatedWords(String word) {
         // for now we will just return the word as is.
         // hook this up to wordnet
         return new ArrayList<String>(Arrays.asList(word));
@@ -75,7 +98,7 @@ public class RelevantSpeechFinder {
      * @return the index
      * @throws IOException
      */
-    private Directory index(Analyzer analyzer, File csvFile) throws IOException {
+    Directory index(Analyzer analyzer, File csvFile) throws IOException {
         File index = new File("lucene-index-" + System.currentTimeMillis());
         IndexWriterConfig config = new IndexWriterConfig(LUCENE_CURRENT, analyzer);
         Directory directory = null;
@@ -111,9 +134,9 @@ public class RelevantSpeechFinder {
      * @throws IOException
      * @throws ParseException
      */
-    private List<ScoreDocument> search(Analyzer analyzer, Directory index, String searchField, String searchTerm) throws IOException, ParseException {
+    Map<Double, Map<String, String>> search(Analyzer analyzer, Directory index, String searchField, String searchTerm) throws IOException, ParseException {
         IndexReader ireader = null;
-        List<ScoreDocument> results = new ArrayList<ScoreDocument>();
+        Map<Double, Map<String, String>> results = new HashMap<Double, Map<String, String>>();
         try {
             // Now search the index:
             ireader = DirectoryReader.open(index);
@@ -124,21 +147,18 @@ public class RelevantSpeechFinder {
             ScoreDoc[] hits = isearcher.search(query, null, 10).scoreDocs;
             if (hits == null) return null;
             for (int i = 0; i < hits.length; i++) {
-               results.add(new ScoreDocument(hits[i].score, isearcher.doc(hits[i].doc))); 
+                Document doc = isearcher.doc(hits[i].doc);
+                Map<String, String> docMap = new HashMap<String, String>();
+                for (IndexableField field : doc.getFields()) {
+                    docMap.put(field.name(), doc.get(field.name()));
+                }
+                double score = hits[i].score;
+                while (results.containsKey(score)) { score -= 1E-6; }
+                results.put(Double.valueOf(hits[i].score), docMap);
             }
         } finally {
             ireader.close();
         }
         return results;
     }
-    
-    private static final class ScoreDocument {
-        final double score;
-        final Document document;
-        ScoreDocument(double score, Document document) {
-            this.score = score;
-            this.document = document;
-        }
-    }
 }
-
