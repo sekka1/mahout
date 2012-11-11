@@ -16,6 +16,11 @@
     </properties>
     <repositories>
         <repository>
+           <id>apache-maven</id>
+           <name>Apache Maven</name>
+           <url>https://repository.apache.org/content/repositories/releases</url>
+        </repository>
+        <repository>
             <id>spring-maven-release</id>
             <name>Spring Maven Release Repository</name>
             <url>http://maven.springframework.org/release</url>
@@ -330,6 +335,26 @@
             <groupId>com.googlecode.jcsv</groupId>
             <artifactId>jcsv</artifactId>
             <version>1.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.extjwnl</groupId>
+            <artifactId>extjwnl</artifactId>
+            <version>1.6.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-common</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-queryparser</artifactId>
+            <version>4.0.0</version>
         </dependency>
     </dependencies>
   
