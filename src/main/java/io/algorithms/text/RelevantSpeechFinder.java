@@ -8,11 +8,14 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -38,6 +41,15 @@ import com.googlecode.jcsv.reader.CSVReader;
 import com.googlecode.jcsv.reader.internal.CSVReaderBuilder;
 import com.googlecode.jcsv.reader.internal.DefaultCSVEntryParser;
 
+import edu.mit.jwi.Dictionary;
+import edu.mit.jwi.IDictionary;
+import edu.mit.jwi.item.IIndexWord;
+import edu.mit.jwi.item.ISynset;
+import edu.mit.jwi.item.ISynsetID;
+import edu.mit.jwi.item.IWord;
+import edu.mit.jwi.item.IWordID;
+import edu.mit.jwi.item.POS;
+
 /**
  * Finds speeches given search terms.
  */
@@ -62,12 +74,12 @@ public class RelevantSpeechFinder {
     public Map<String, Map<String, Map<Double, Map<String, String>>>> findRelevantSpeeches(File csvFile, String queryText) throws IOException, ParseException {
         Analyzer analyzer = new StandardAnalyzer(LUCENE_CURRENT);
         Directory index = index(analyzer, csvFile);
-        Map<String, Map<String, Map<Double, Map<String, String>>>> results = new HashMap<String, Map<String, Map<Double, Map<String, String>>>>();
+        Map<String, Map<String, Map<Double, Map<String, String>>>> results = new LinkedHashMap<String, Map<String, Map<Double, Map<String, String>>>>();
         StringTokenizer st = new StringTokenizer(queryText);
         while (st.hasMoreTokens()) {
             String word = st.nextToken();
             List<String> relatedWords = getRelatedWords(word);
-            Map<String, Map<Double, Map<String, String>>> partialResults = new HashMap<String, Map<Double, Map<String, String>>>();
+            Map<String, Map<Double, Map<String, String>>> partialResults = new LinkedHashMap<String, Map<Double, Map<String, String>>>();
             for (String relatedWord : relatedWords) {
                 Map<Double, Map<String, String>> searchResults = search(analyzer, index, "Transcript", relatedWord);
                 partialResults.put(relatedWord, searchResults);
@@ -78,14 +90,55 @@ public class RelevantSpeechFinder {
     }
     
     /**
-     * Returns a list of words related to the given word.
+     * Returns a list of words related to the given word. This includes synonyms and hypernyms.
      * @param word
      * @return
      */
-    List<String> getRelatedWords(String word) {
-        // for now we will just return the word as is.
-        // hook this up to wordnet
-        return new ArrayList<String>(Arrays.asList(word));
+    List<String> getRelatedWords(String word) throws IOException {
+        List<String> result = new ArrayList<String>();
+        result.add(word);
+        IDictionary dict = new Dictionary(new File("/usr/share/wordnet"));
+        try {
+            dict.open();
+            for (POS pos : EnumSet.of(POS.ADJECTIVE, POS.ADVERB, POS.NOUN, POS.VERB)) {
+                IIndexWord idxWord = dict.getIndexWord(word, pos);
+                if (idxWord == null) continue;
+                List<IWordID> wordIDs = idxWord.getWordIDs();
+                if (wordIDs == null) continue;
+                IWordID wordID = wordIDs.get(0);
+                IWord iword = dict.getWord(wordID);
+
+                ISynset synonyms = iword.getSynset();
+                List<IWord> iRelatedWords = synonyms.getWords();
+                if (iRelatedWords != null) {
+                    for (IWord iRelatedWord : iRelatedWords) {
+                        String relatedWord = iRelatedWord.getLemma();
+                        if (!result.contains(relatedWord))
+                            result.add(relatedWord);
+                    }
+                }
+                
+                List<ISynsetID> hypernymIDs = synonyms.getRelatedSynsets();
+                if (hypernymIDs != null) {
+                    for (ISynsetID relatedSynsetID : hypernymIDs) {
+                        ISynset relatedSynset = dict.getSynset(relatedSynsetID);
+                        if (relatedSynset != null) {
+                            iRelatedWords = relatedSynset.getWords();
+                            if (iRelatedWords != null) {
+                                for (IWord iRelatedWord : iRelatedWords) {
+                                    String relatedWord = iRelatedWord.getLemma();
+                                    if (!result.contains(relatedWord))
+                                        result.add(relatedWord);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } finally {
+            dict.close();
+        }
+        return result;
     }
     
     /**
@@ -106,14 +159,16 @@ public class RelevantSpeechFinder {
         try {
             directory = FSDirectory.open(index);
             iwriter = new IndexWriter(directory, config);
-            CSVReader<String[]> reader = new CSVReaderBuilder<String[]>(new FileReader(csvFile)).strategy(CSVStrategy.DEFAULT).entryParser(new DefaultCSVEntryParser()).build();
+            CSVReader<String[]> reader = new CSVReaderBuilder<String[]>(new FileReader(csvFile)).strategy(CSVStrategy.UK_DEFAULT).entryParser(new DefaultCSVEntryParser()).build();
             List<String> header = reader.readHeader();
             if (header != null) {
                 String[] line;
                 while ((line = reader.readNext()) != null) {
                     Document doc = new Document();
                     for (int i = 0; i < header.size(); i++) {
-                        doc.add(new Field(header.get(i), line[i], TextField.TYPE_STORED));
+                        String fieldName = header.get(i);
+                        String fieldValue = line[i];
+                        doc.add(new Field(fieldName, fieldValue, TextField.TYPE_STORED));
                     }
                     iwriter.addDocument(doc);
                 }
@@ -134,9 +189,10 @@ public class RelevantSpeechFinder {
      * @throws IOException
      * @throws ParseException
      */
-    Map<Double, Map<String, String>> search(Analyzer analyzer, Directory index, String searchField, String searchTerm) throws IOException, ParseException {
+    SortedMap<Double, Map<String, String>> search(Analyzer analyzer, Directory index, String searchField, String searchTerm) throws IOException, ParseException {
         IndexReader ireader = null;
-        Map<Double, Map<String, String>> results = new HashMap<Double, Map<String, String>>();
+        SortedMap<Double, Map<String, String>> results = new TreeMap<Double, Map<String, String>>(new Comparator<Double>() {
+            public int compare(Double o1, Double o2) { return (o1 > o2) ? -1 : ((o2 > o1) ? 1 : 0); } } );
         try {
             // Now search the index:
             ireader = DirectoryReader.open(index);
@@ -148,7 +204,7 @@ public class RelevantSpeechFinder {
             if (hits == null) return null;
             for (int i = 0; i < hits.length; i++) {
                 Document doc = isearcher.doc(hits[i].doc);
-                Map<String, String> docMap = new HashMap<String, String>();
+                Map<String, String> docMap = new LinkedHashMap<String, String>();
                 for (IndexableField field : doc.getFields()) {
                     docMap.put(field.name(), doc.get(field.name()));
                 }

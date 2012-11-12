@@ -1,19 +1,16 @@
 /*
-* Copyright 2001-2012 ArcSight, Inc. All Rights Reserved.
-*
-* This software is the proprietary information of ArcSight, Inc.
-* Use is subject to license terms.
-*
+* Copyright 2012 Algorithms.io. All Rights Reserved.
 * $Author: rajiv$
-* $Date: Nov 11, 2012$
 */
 package io.algorithms.text;
 
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.net.URL;
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -27,6 +24,7 @@ import org.junit.Test;
  */
 public class RelevantSpeechFinderTest {
     RelevantSpeechFinder rsf;
+    File file;
 
     /**
      * @throws java.lang.Exception
@@ -34,6 +32,7 @@ public class RelevantSpeechFinderTest {
     @Before
     public void setUp() throws Exception {
         rsf = new RelevantSpeechFinder();
+        file = new File(ClassLoader.getSystemResource("famous_speeches.csv").toURI());
     }
 
     /**
@@ -48,16 +47,40 @@ public class RelevantSpeechFinderTest {
      * Test method for {@link io.algorithms.text.RelevantSpeechFinder#findRelevantSpeeches(java.io.File, java.lang.String)}.
      */
     @Test
-    public void testFindRelevantSpeeches() {
-//        fail("Not yet implemented");
+    public void testFindRelevantSpeeches() throws Exception {
+        Map<String, Map<String, Map<Double, Map<String, String>>>> results = rsf.findRelevantSpeeches(file, "necessary evil");
+        assertNotNull(results);
+        assertEquals(results.size(), 2);
+        String inputWord = "necessary"; // first word
+        assertTrue(results.keySet().contains(inputWord));
+        Map<String, Map<Double, Map<String, String>>> resultsForInputWord = results.get(inputWord);
+        assertNotNull(resultsForInputWord);
+        assertTrue(resultsForInputWord.size() >= 16);
+        String synonym = "indispensable";
+        assertTrue(resultsForInputWord.keySet().contains(synonym));
+        Map<Double, Map<String, String>> scoresForRelatedWord = resultsForInputWord.get(synonym);
+        assertNotNull(scoresForRelatedWord);
+        for (Double score : scoresForRelatedWord.keySet()) {
+            Map<String, String> doc = scoresForRelatedWord.get(score);
+            assertNotNull(doc);
+            String speaker = doc.get("Speaker");
+            assertNotNull(speaker);
+            assertTrue(speaker.contains("Nixon"));
+            break; // we just want to check the first entry
+        }
     }
 
     /**
      * Test method for {@link io.algorithms.text.RelevantSpeechFinder#getRelatedWords(java.lang.String)}.
      */
     @Test
-    public void testGetRelatedWords() {
-//        fail("Not yet implemented");
+    public void testGetRelatedWords() throws IOException {
+        String word = "tall";
+        List<String> relatedWords = rsf.getRelatedWords(word);
+        assertNotNull(relatedWords);
+        assertTrue(relatedWords.size() >= 22);
+        assertEquals(relatedWords.get(0), "tall");
+        assertTrue(relatedWords.contains("gangly"));
     }
 
     /**
@@ -67,11 +90,13 @@ public class RelevantSpeechFinderTest {
     @Test
     public void testIndexAndSearch() throws Exception {
         Analyzer a = new StandardAnalyzer(RelevantSpeechFinder.LUCENE_CURRENT);
-        URL url = ClassLoader.getSystemResource("famous_speeches.csv");
-        Directory d = rsf.index(a, new File(url.toURI()));
-        Map<Double, Map<String, String>> results = rsf.search(a, d, "Transcript", "dream");
-        for (Double score : results.keySet()) {
-            System.out.print(score + ":" + results.get(score).get("Title"));
-        }
+        Directory d = rsf.index(a, file);
+        SortedMap<Double, Map<String, String>> results = rsf.search(a, d, "Transcript", "trouble");
+        assertNotNull(results);
+        assertEquals(results.size(), 4);
+        assertEquals(results.firstKey().doubleValue(), 0.09, .01);
+        assertEquals(results.get(results.firstKey()).get("Speaker"), "William Jefferson Clinton");
+        assertEquals(results.lastKey().doubleValue(), 0.05, .01);
+        assertEquals(results.get(results.lastKey()).get("Speaker"), "Martin Luther King, Jr.");
     }
 }
