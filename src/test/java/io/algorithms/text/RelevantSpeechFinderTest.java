@@ -6,11 +6,12 @@ package io.algorithms.text;
 
 import static org.junit.Assert.*;
 
-import java.io.File;
+import io.algorithms.text.RelevantSpeechFinder.ScoreDocument;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -20,11 +21,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * 
+ * Tests all the methods in RelevantSpeechFinder.
  */
 public class RelevantSpeechFinderTest {
     RelevantSpeechFinder rsf;
-    File file;
+    InputStream file;
 
     /**
      * @throws java.lang.Exception
@@ -32,7 +33,7 @@ public class RelevantSpeechFinderTest {
     @Before
     public void setUp() throws Exception {
         rsf = new RelevantSpeechFinder();
-        file = new File(ClassLoader.getSystemResource("famous_speeches.csv").toURI());
+        file = ClassLoader.getSystemResourceAsStream("famous_speeches.csv");
     }
 
     /**
@@ -48,26 +49,25 @@ public class RelevantSpeechFinderTest {
      */
     @Test
     public void testFindRelevantSpeeches() throws Exception {
-        Map<String, Map<String, Map<Double, Map<String, String>>>> results = rsf.findRelevantSpeeches(file, "necessary evil");
+        Map<String, Map<String, List<ScoreDocument>>> results = rsf.findRelevantSpeeches("necessary evil");
         assertNotNull(results);
         assertEquals(results.size(), 2);
         String inputWord = "necessary"; // first word
         assertTrue(results.keySet().contains(inputWord));
-        Map<String, Map<Double, Map<String, String>>> resultsForInputWord = results.get(inputWord);
+        Map<String, List<ScoreDocument>> resultsForInputWord = results.get(inputWord);
         assertNotNull(resultsForInputWord);
-        assertTrue(resultsForInputWord.size() >= 16);
-        String synonym = "indispensable";
+        assertTrue(resultsForInputWord.size() >= 10);
+        String synonym = "essential";
         assertTrue(resultsForInputWord.keySet().contains(synonym));
-        Map<Double, Map<String, String>> scoresForRelatedWord = resultsForInputWord.get(synonym);
+        List<ScoreDocument> scoresForRelatedWord = resultsForInputWord.get(synonym);
         assertNotNull(scoresForRelatedWord);
-        for (Double score : scoresForRelatedWord.keySet()) {
-            Map<String, String> doc = scoresForRelatedWord.get(score);
-            assertNotNull(doc);
-            String speaker = doc.get("Speaker");
-            assertNotNull(speaker);
-            assertTrue(speaker.contains("Nixon"));
-            break; // we just want to check the first entry
-        }
+        assertEquals(scoresForRelatedWord.size(), 10);
+        assertEquals(scoresForRelatedWord.get(2).score, 0.0927, 0.1);
+        Map<String, String> doc = scoresForRelatedWord.get(2).document;
+        assertNotNull(doc);
+        String speaker = doc.get("Speaker");
+        assertNotNull(speaker);
+        assertTrue(speaker.contains("Marshall"));
     }
 
     /**
@@ -78,7 +78,7 @@ public class RelevantSpeechFinderTest {
         String word = "tall";
         List<String> relatedWords = rsf.getRelatedWords(word);
         assertNotNull(relatedWords);
-        assertTrue(relatedWords.size() >= 22);
+        assertTrue(relatedWords.size() >= 16);
         assertEquals(relatedWords.get(0), "tall");
         assertTrue(relatedWords.contains("gangly"));
     }
@@ -91,12 +91,12 @@ public class RelevantSpeechFinderTest {
     public void testIndexAndSearch() throws Exception {
         Analyzer a = new StandardAnalyzer(RelevantSpeechFinder.LUCENE_CURRENT);
         Directory d = rsf.index(a, file);
-        SortedMap<Double, Map<String, String>> results = rsf.search(a, d, "Transcript", "trouble");
+        List<ScoreDocument> results = rsf.search(a, d, "Transcript", "trouble");
         assertNotNull(results);
-        assertEquals(results.size(), 4);
-        assertEquals(results.firstKey().doubleValue(), 0.09, .01);
-        assertEquals(results.get(results.firstKey()).get("Speaker"), "William Jefferson Clinton");
-        assertEquals(results.lastKey().doubleValue(), 0.05, .01);
-        assertEquals(results.get(results.lastKey()).get("Speaker"), "Martin Luther King, Jr.");
+        assertEquals(results.size(), 7);
+        assertEquals(results.get(2).score, 0.069, .01);
+        assertEquals(results.get(2).document.get("Title"), "Cambodian Incursion Address");
+        assertEquals(results.get(6).score, 0.046, .01);
+        assertEquals(results.get(6).document.get("Speaker"), "Martin Luther King, Jr.");
     }
 }
