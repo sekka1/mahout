@@ -54,6 +54,7 @@ public class WrapperServlet extends HttpServlet {
         String clazz = req.getParameter("class");
         String method = req.getParameter("method");
         String parameters = req.getParameter("parameters");
+        ObjectMapper mapper = new ObjectMapper();
 
         if (clazz == null) throw new ServletException("Missing required parameter 'class'");
         if (method == null) throw new ServletException("Missing required parameter 'method'");
@@ -62,7 +63,6 @@ public class WrapperServlet extends HttpServlet {
         String[] parameterNameArray = null;
         Object[] parameterValueArray = null;
         if (parameters != null) {
-            ObjectMapper mapper = new ObjectMapper();
             paramMap = mapper.readValue(parameters, Map.class);
             if (paramMap != null) {
                 parameterTypeArray = new Class<?>[paramMap.size()];
@@ -87,7 +87,7 @@ public class WrapperServlet extends HttpServlet {
             m = c.getDeclaredMethod(method, parameterTypeArray);
             m.setAccessible(true);
             Object o = m.invoke(instance, parameterValueArray);
-            byte[] out = new ObjectMapper().writeValueAsBytes(o);
+            byte[] out = mapper.writeValueAsBytes(o);
             resp.setHeader("Content-Type", "application/json");
             resp.getOutputStream().write(out);
         } catch (Exception e) {

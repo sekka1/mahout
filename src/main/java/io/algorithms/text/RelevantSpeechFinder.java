@@ -5,7 +5,6 @@
 package io.algorithms.text;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,8 +68,6 @@ public class RelevantSpeechFinder {
     
     public RelevantSpeechFinder() throws URISyntaxException, FileNotFoundException {
         csvFile = Thread.currentThread().getContextClassLoader().getResourceAsStream("famous_speeches.csv");
-        if (csvFile == null)
-            csvFile = new FileInputStream(new File("src/main/resources/famous_speeches.csv"));
     }
     
     /**
@@ -89,20 +86,25 @@ public class RelevantSpeechFinder {
      */
     public Map<String, Map<String, List<ScoreDocument>>> findRelevantSpeeches(String queryText) throws IOException, ParseException {
         Analyzer analyzer = new StandardAnalyzer(LUCENE_CURRENT);
-        Directory index = index(analyzer, csvFile);
         Map<String, Map<String, List<ScoreDocument>>> results = new LinkedHashMap<String, Map<String, List<ScoreDocument>>>();
-        StringTokenizer st = new StringTokenizer(queryText);
-        while (st.hasMoreTokens()) {
-            String word = st.nextToken();
-            if (word.length() < 4) continue; // reject small words
-            word = word.toLowerCase();
-            List<String> relatedWords = getRelatedWords(word);
-            Map<String, List<ScoreDocument>> partialResults = new LinkedHashMap<String, List<ScoreDocument>>();
-            for (String relatedWord : relatedWords) {
-                List<ScoreDocument> searchResults = search(analyzer, index, "Transcript", relatedWord);
-                partialResults.put(relatedWord, searchResults);
+        Directory index = null;
+        try {
+            index = index(analyzer, csvFile);
+            StringTokenizer st = new StringTokenizer(queryText);
+            while (st.hasMoreTokens()) {
+                String word = st.nextToken();
+                if (word.length() < 4) continue; // reject small words
+                word = word.toLowerCase();
+                List<String> relatedWords = getRelatedWords(word);
+                Map<String, List<ScoreDocument>> partialResults = new LinkedHashMap<String, List<ScoreDocument>>();
+                for (String relatedWord : relatedWords) {
+                    List<ScoreDocument> searchResults = search(analyzer, index, "Transcript", relatedWord);
+                    partialResults.put(relatedWord, searchResults);
+                }
+                results.put(word, partialResults);
             }
-            results.put(word, partialResults);
+        } finally {
+            if (index != null) index.close();
         }
         return results;
     }
@@ -260,56 +262,25 @@ public class RelevantSpeechFinder {
     @XmlRootElement
     public static final class ScoreDocument implements Comparable<ScoreDocument> {
         double score;
-        final Map<String, String> document;
+        Map<String, String> document;
 
         public ScoreDocument(double score, Document doc) {
             this.score = score;
             document = new LinkedHashMap<String, String>();
             for (IndexableField field : doc.getFields()) {
-                if (!field.name().equals("Transcript"))
-                    document.put(field.name(), doc.get(field.name()));
+                document.put(field.name(), doc.get(field.name()));
             }
         }
+
+        public double getScore() { return score; }
+        public void setScore(double score) { this.score = score; }
+        public Map<String, String> getDocument() { return document; }
+        public void setDocument(Map<String, String> document) { this.document = document; }
         
-        /* (non-Javadoc)
-         * @see java.lang.Comparable#compareTo(java.lang.Object)
-         */
         @Override
-        public int compareTo(ScoreDocument o) {
-            return Double.valueOf(o.score).compareTo(score); // sort by descending score
-        }
-
-        /* (non-Javadoc)
-         * @see java.lang.Object#toString()
-         */
+        // sort by descending score
+        public int compareTo(ScoreDocument o) { return Double.valueOf(o.score).compareTo(score); }
         @Override
-        public String toString() {
-            return score + (document.containsKey("Title") ? ": " + document.get("Title") : "");
-        }
-
-        /**
-         * @return the score
-         */
-        public double getScore() {
-            return score;
-        }
-
-        /**
-         * @param score the score to set
-         */
-        public void setScore(double score) {
-            this.score = score;
-        }
-
-        /**
-         * @return the document
-         */
-        public Map<String, String> getDocument() {
-            return document;
-        }
-    }
-    
-    public static final class RelevantSpeeches {
-        
+        public String toString() { return score + (document.containsKey("Title") ? ": " + document.get("Title") : ""); }
     }
 }
