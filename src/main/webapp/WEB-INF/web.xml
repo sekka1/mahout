@@ -30,4 +30,13 @@
         <servlet-name>RunnerMahoutTaste</servlet-name>
         <url-pattern>/RunnerMahoutTaste</url-pattern>
     </servlet-mapping>
+    <!-- Wrapper Servlet -->
+    <servlet>
+        <servlet-name>WrapperServlet</servlet-name>
+        <servlet-class>io.algorithms.runner.WrapperServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>WrapperServlet</servlet-name>
+        <url-pattern>/rest/*</url-pattern>
+    </servlet-mapping>
 </web-app>
