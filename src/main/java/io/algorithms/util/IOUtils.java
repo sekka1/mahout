@@ -1,34 +1,81 @@
 /*
 * Copyright 2012 Algorithms.io. All Rights Reserved.
-* $Author: rajiv$
 */
-package io.algorithms.utils;
+package io.algorithms.util;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.core.MediaType;
+
 import org.apache.mahout.classifier.sgd.CsvRecordFactory;
 import org.apache.mahout.classifier.sgd.RecordFactory;
 import org.apache.mahout.math.Vector;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.JsonParseException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.io.ByteStreams;
 import com.googlecode.jcsv.CSVStrategy;
 import com.googlecode.jcsv.reader.CSVReader;
 import com.googlecode.jcsv.reader.internal.CSVReaderBuilder;
 import com.googlecode.jcsv.reader.internal.DefaultCSVEntryParser;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.client.urlconnection.HTTPSProperties;
 
 /**
- * Utilities for reading and persisting stuff. 
+ * Utilities for reading and persisting stuff.
+ * @author Rajiv 
  */
 public final class IOUtils {
+    public static final String API_DATASET_URL_SUFFIX = "/dataset/id/",
+            CONTENT_TYPE = "Content-Type",
+            CONTENT_TYPE_JSON = "application/json",
+            TMP_FOLDER = "/tmp",
+            AUTH_TOKEN = "authToken";
+    private static final Map<String, Class<?>> TYPES = new HashMap<String, Class<?>>();
+    private static final ClientConfig ALL_TRUSTING_CLIENT_CONFIG = new DefaultClientConfig();
+    static {
+        TYPES.put("string", String.class);
+        TYPES.put("number", Double.class);
+        TYPES.put("integer", Integer.class);
+        TYPES.put("datasource", File.class);
+        
+        try {
+            SSLContext allTrustingSSLContext = SSLContext.getInstance("TLS");
+            allTrustingSSLContext.init(null, new TrustManager[]{new X509TrustManager(){
+                public X509Certificate[] getAcceptedIssuers(){return null;}
+                public void checkClientTrusted(X509Certificate[] certs, String authType){}
+                public void checkServerTrusted(X509Certificate[] certs, String authType){}
+            }}, new SecureRandom());
+            ALL_TRUSTING_CLIENT_CONFIG.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(
+                    new HostnameVerifier() { public boolean verify(String arg0, SSLSession arg1) { return true; } }, allTrustingSSLContext));
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+    }
+
     /**
      * Creates a RecordFactory instance which can interpret CSV files.
      * @param columnNameToTypeMap Map whose keys are the column names (as defined in the header), and values are the type.
@@ -44,6 +91,36 @@ public final class IOUtils {
         factory.includeBiasTerm(true);
         return factory;
     }
+    
+    /**
+     * Downloads files from algorithms.io datastore using the API.
+     * @param authToken
+     * @param algoServer
+     * @param dataSourceId
+     * @return
+     * @throws JsonParseException
+     * @throws JsonMappingException
+     * @throws IOException
+     */
+    public static File downloadFileFromAPI(String authToken, String algoServer, String dataSourceId) throws JsonParseException, JsonMappingException, IOException {
+        File output = new File(TMP_FOLDER, algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
+        if (output.exists()) { return output; } // TODO: Assumes that the dataset never changes. Need to verify checksum.
+
+        ClientResponse response = Client.create(ALL_TRUSTING_CLIENT_CONFIG) // TODO: HIGHLY UNSAFE
+            .resource(algoServer + API_DATASET_URL_SUFFIX + dataSourceId)
+            .accept(MediaType.WILDCARD)
+            .header(AUTH_TOKEN, authToken)
+            .get(ClientResponse.class);
+        ByteStreams.copy(response.getEntityInputStream(), new FileOutputStream(output));
+        return output;
+    }
+    
+    
+    public static Class<?> getClazz(String type) {
+        if (type == null) { type = "string"; }
+        return TYPES.get(type);
+    }
+    
     
     private static final class RajivsSuperCSVRecordFactory implements RecordFactory {
         final ConcurrentMap<String, Integer> dict = new ConcurrentHashMap<String, Integer>();

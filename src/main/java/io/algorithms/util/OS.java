@@ -1,4 +1,4 @@
-package io.algorithms.utils;
+package io.algorithms.util;
 
 import java.io.File;
 //Helper class that lets one set the Operating system up

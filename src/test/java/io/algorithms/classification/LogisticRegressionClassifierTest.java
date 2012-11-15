@@ -6,7 +6,7 @@ package io.algorithms.classification;
 
 import static org.junit.Assert.*;
 
-import io.algorithms.utils.IOUtils;
+import io.algorithms.util.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;

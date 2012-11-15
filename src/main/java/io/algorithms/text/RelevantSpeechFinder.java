@@ -1,6 +1,5 @@
 /*
 * Copyright 2012 Algorithms.io. All Rights Reserved.
-* $Author: rajiv$
 */
 package io.algorithms.text;
 
@@ -38,6 +37,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import com.googlecode.jcsv.CSVStrategy;
 import com.googlecode.jcsv.reader.CSVReader;
@@ -57,12 +57,13 @@ import edu.mit.jwi.morph.WordnetStemmer;
 
 /**
  * Finds speeches given search terms.
+ * @author Rajiv
  */
 public class RelevantSpeechFinder {
     
     static final Version LUCENE_CURRENT = Version.LUCENE_40;
     static final File INDEX_FOLDER = new File("tmp");
-    static final String INDEX_FILE_PREFIX = "lucene-index-";
+    static final String INDEX_FILE_PREFIX = "lucene-index-", DATASOURCE_KEY_TEXT = "text";
 
     private InputStream csvFile;
     
@@ -71,9 +72,32 @@ public class RelevantSpeechFinder {
     }
     
     /**
+     * Returns speeches that are relevant to a given search term. This expects a file as input which contains the query text in a json structure
+     * {"text":"The input text"}
+     * @return the search results as a map in the following format:
+     *          foreach word w in input text
+     *               for each word v related to w
+     *                   list of documents in descending order of relevance to v
+     *                   (each document is returned as a Map<FieldName, Value>
+     *               end
+     *            end
+     * @throws IOException
+     * @throws ParseException
+     */
+    public Map<String, Map<String, List<ScoreDocument>>> findRelevantSpeeches(File dataSource) throws IOException, ParseException {
+        ObjectMapper mapper = new ObjectMapper();
+        @SuppressWarnings("unchecked")
+        Map<String, String> json = mapper.readValue(dataSource, Map.class);
+        if (json != null && json.containsKey(DATASOURCE_KEY_TEXT)) {
+            return findRelevantSpeeches(json.get(DATASOURCE_KEY_TEXT));
+        }
+        return null;
+    }
+    
+    /**
      * Returns speeches that are relevant to a given search term.
      * @param csvFile CSV file containing all the speeches. It must have the following columns: Rank,Speaker,Title,Audio,Transcript
-     * @param word The word whose synomyms are to be searched across the speeches
+     * @param queryText The string of space separated words whose synomyms are to be searched across the speeches
      * @return the search results as a map in the following format:
      *          foreach word w in input text
      *               for each word v related to w
@@ -85,6 +109,7 @@ public class RelevantSpeechFinder {
      * @throws ParseException
      */
     public Map<String, Map<String, List<ScoreDocument>>> findRelevantSpeeches(String queryText) throws IOException, ParseException {
+        if (queryText == null) { return null; } 
         Analyzer analyzer = new StandardAnalyzer(LUCENE_CURRENT);
         Map<String, Map<String, List<ScoreDocument>>> results = new LinkedHashMap<String, Map<String, List<ScoreDocument>>>();
         Directory index = null;
