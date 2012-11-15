@@ -1,4 +1,4 @@
-package io.algorithms.utils;
+package io.algorithms.util;
 
 import java.io.BufferedWriter;
 import java.io.File;

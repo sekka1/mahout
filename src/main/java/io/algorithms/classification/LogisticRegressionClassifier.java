@@ -9,7 +9,7 @@ import io.algorithms.entity.AlgorithmException;
 import io.algorithms.entity.DataSetEntity;
 import io.algorithms.entity.InvalidDataSetException;
 import io.algorithms.entity.InvalidParameterException;
-import io.algorithms.utils.IOUtils;
+import io.algorithms.util.IOUtils;
 
 import java.io.BufferedReader;
 import java.io.File;

@@ -16,7 +16,7 @@ import com.google.common.base.Preconditions;
 //import io.algorithms.clustering.mahout.SimClustering;
 import io.algorithms.classification.LogisticRegressionClassifier;
 import io.algorithms.recommenders.mahout.*;
-import io.algorithms.utils.OS;
+import io.algorithms.util.OS;
 
 public class MahoutTaste extends HttpServlet {
 	
