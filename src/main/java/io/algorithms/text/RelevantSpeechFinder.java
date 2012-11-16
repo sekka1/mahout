@@ -293,7 +293,8 @@ public class RelevantSpeechFinder {
             this.score = score;
             document = new LinkedHashMap<String, String>();
             for (IndexableField field : doc.getFields()) {
-                document.put(field.name(), doc.get(field.name()));
+                if (!field.name().equals("Transcript"))
+                    document.put(field.name(), doc.get(field.name()));
             }
         }
 
