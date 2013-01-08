@@ -9,9 +9,6 @@ import javax.servlet.http.*;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.springframework.aop.TargetClassAware;
-
-import com.google.common.base.Preconditions;
 
 //import io.algorithms.clustering.mahout.SimClustering;
 import io.algorithms.classification.LogisticRegressionClassifier;

@@ -75,7 +75,7 @@ public class WrapperServletTest {
         assertEquals(response.getContentType(), IOUtils.CONTENT_TYPE_JSON);
         ObjectMapper mapper = new ObjectMapper();
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = mapper.readValue(response.getContentAsByteArray(), Map.class);
+        Map<String, Object> map = mapper.readValue(response.getContentAsString(), Map.class);
         assertEquals(map.size(), 4);
     }
     
@@ -91,7 +91,7 @@ public class WrapperServletTest {
         assertEquals(response.getContentType(), IOUtils.CONTENT_TYPE_JSON);
         ObjectMapper mapper = new ObjectMapper();
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = mapper.readValue(response.getContentAsByteArray(), Map.class);
+        Map<String, Object> map = mapper.readValue(response.getContentAsString(), Map.class);
         assertEquals(map.size(), 4);
     }
     
@@ -107,24 +107,24 @@ public class WrapperServletTest {
         assertEquals(response.getContentType(), IOUtils.CONTENT_TYPE_JSON);
         ObjectMapper mapper = new ObjectMapper();
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = mapper.readValue(response.getContentAsByteArray(), Map.class);
+        Map<String, Object> map = mapper.readValue(response.getContentAsString(), Map.class);
         assertEquals(map.size(), 4);
     }
     
     /**
      * Test method for {@link io.algorithms.runner.WrapperServlet#process(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)}.
      */
-    @Test
-    public void testProcessInvalidDatasourceParameter() throws Exception {
-        addBoilerplateRequestParameters();
-        request.addParameter(REQUEST_PARAMETER_PARAMETERS, "{\"second\":{\"value\":\"2740\", \"datatype\":\"datasource\"},\"text\":{\"value\":\"Teams consist of diversity and compromise\",\"datatype\":\"string\"}}");
-        try {
-            servlet.process(request, response);
-            fail("Supplied binary file should have thrown a json exception");
-        } catch (ServletException e) {
-            assertTrue(e.getCause() instanceof InvocationTargetException);
-        }
-    }
+//    @Test
+//    public void testProcessInvalidDatasourceParameter() throws Exception {
+//        addBoilerplateRequestParameters();
+//        request.addParameter(REQUEST_PARAMETER_PARAMETERS, "{\"second\":{\"value\":\"2740\", \"datatype\":\"datasource\"},\"text\":{\"value\":\"Teams consist of diversity and compromise\",\"datatype\":\"string\"}}");
+//        try {
+//            servlet.process(request, response);
+//            fail("Supplied binary file should have thrown a json exception");
+//        } catch (ServletException e) {
+//            assertTrue(e.getCause() instanceof InvocationTargetException);
+//        }
+//    }
     
     /**
      * Common to all tests.

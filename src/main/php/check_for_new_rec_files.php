@@ -8,6 +8,8 @@ $s3 = new S3Usage();
 // Get bucket list
 $bucketList = $s3->getBucket( 'algorithms.io' );
 
+date_default_timezone_set('America/Los_Angeles');
+
 // Get the status file
 $status_json = $s3->getTextObjectandReturnContents( 'Statuses.txt' );
 
