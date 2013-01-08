@@ -4,11 +4,6 @@
 */
 package io.algorithms.classification;
 
-import io.algorithms.entity.Algorithm;
-import io.algorithms.entity.AlgorithmException;
-import io.algorithms.entity.DataSetEntity;
-import io.algorithms.entity.InvalidDataSetException;
-import io.algorithms.entity.InvalidParameterException;
 import io.algorithms.util.IOUtils;
 
 import java.io.BufferedReader;
@@ -22,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.mahout.classifier.AbstractVectorClassifier;
 import org.apache.mahout.classifier.OnlineLearner;
@@ -39,37 +33,9 @@ import com.google.common.base.Preconditions;
 /**
  * Implements logistic regression.
  */
-public class LogisticRegressionClassifier implements Algorithm {
+public class LogisticRegressionClassifier {
     private static final DecimalFormat FORMAT = new DecimalFormat("#.##");
     
-    /* (non-Javadoc)
-     * @see io.algorithms.entity.Algorithm#getImplementationClass()
-     */
-    @Override
-    public String getImplementationClass() {
-        return "classification_logistic_regression";
-    }
-
-    /* (non-Javadoc)
-     * @see io.algorithms.entity.Algorithm#validate(java.util.List, java.util.Properties)
-     */
-    @Override
-    public List<DataSetEntity> validate(List<DataSetEntity> inputDataSets,
-            Properties parameters) throws InvalidDataSetException,
-            InvalidParameterException, IOException {
-        return null;
-    }
-
-    /* (non-Javadoc)
-     * @see io.algorithms.entity.Algorithm#run(java.util.List, java.util.Properties)
-     */
-    @Override
-    public List<DataSetEntity> run(List<DataSetEntity> inputDataSets,
-            Properties parameters) throws InvalidDataSetException,
-            InvalidParameterException, IOException, AlgorithmException {
-        return validate(inputDataSets, parameters);
-    }
-
     public String trainAndClassify(File inputFile, Map<String, String> columnNameToTypeMap,
             String targetColumnName, List<String> targetClasses, String query) throws IOException {
 
