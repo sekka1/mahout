@@ -127,7 +127,8 @@ public class WrapperServlet extends HttpServlet {
                     parameterValueArray = Arrays.copyOfRange(parameterValueArray, 0, i-1);
                 }
             }
-            if (!found) { throw new ServletException("Could not find method " + method + " in class " + clazz + ". Tried all subsets"); }
+            if (!found) { throw new ServletException("Could not find method " + method + " in class " + clazz
+                    + " that matches the supplied parameter types. Tried all subsets"); }
         }
         
         // All set. Now execute the method and return the results encoded as json.

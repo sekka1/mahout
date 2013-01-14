@@ -6,8 +6,9 @@ package io.algorithms.text;
 
 import static org.junit.Assert.*;
 
-import io.algorithms.text.RelevantSpeechFinder.ScoreDocument;
+import io.algorithms.text.Lucene.ScoreDocument;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -24,8 +25,8 @@ import org.junit.Test;
  * Tests all the methods in RelevantSpeechFinder.
  */
 public class RelevantSpeechFinderTest {
+    File csvFile;
     RelevantSpeechFinder rsf;
-    InputStream file;
 
     /**
      * @throws java.lang.Exception
@@ -33,7 +34,7 @@ public class RelevantSpeechFinderTest {
     @Before
     public void setUp() throws Exception {
         rsf = new RelevantSpeechFinder();
-        file = ClassLoader.getSystemResourceAsStream("famous_speeches.csv");
+        csvFile = new File(ClassLoader.getSystemResource("famous_speeches.csv").toURI());
     }
 
     /**
@@ -49,7 +50,7 @@ public class RelevantSpeechFinderTest {
      */
     @Test
     public void testFindRelevantSpeeches() throws Exception {
-        Map<String, Map<String, List<ScoreDocument>>> results = rsf.findRelevantSpeeches("necessary evil");
+        Map<String, Map<String, List<ScoreDocument>>> results = rsf.findRelevantSpeeches(csvFile, "necessary evil");
         assertNotNull(results);
         assertEquals(results.size(), 2);
         String inputWord = "necessary"; // first word
@@ -68,35 +69,5 @@ public class RelevantSpeechFinderTest {
         String speaker = doc.get("Speaker");
         assertNotNull(speaker);
         assertTrue(speaker.contains("Marshall"));
-    }
-
-    /**
-     * Test method for {@link io.algorithms.text.RelevantSpeechFinder#getRelatedWords(java.lang.String)}.
-     */
-    @Test
-    public void testGetRelatedWords() throws IOException {
-        String word = "tall";
-        List<String> relatedWords = rsf.getRelatedWords(word);
-        assertNotNull(relatedWords);
-        assertTrue(relatedWords.size() >= 16);
-        assertEquals(relatedWords.get(0), "tall");
-        assertTrue(relatedWords.contains("gangly"));
-    }
-
-    /**
-     * Test method for {@link io.algorithms.text.RelevantSpeechFinder#index(org.apache.lucene.analysis.Analyzer, java.io.File)} and
-     * {@link io.algorithms.text.RelevantSpeechFinder#search(org.apache.lucene.analysis.Analyzer, org.apache.lucene.store.Directory, java.lang.String, java.lang.String)}.
-     */
-    @Test
-    public void testIndexAndSearch() throws Exception {
-        Analyzer a = new StandardAnalyzer(RelevantSpeechFinder.LUCENE_CURRENT);
-        Directory d = rsf.index(a, file);
-        List<ScoreDocument> results = rsf.search(a, d, "Transcript", "trouble");
-        assertNotNull(results);
-        assertEquals(results.size(), 7);
-        assertEquals(results.get(2).score, 0.069, .01);
-        assertEquals(results.get(2).document.get("Title"), "Cambodian Incursion Address");
-        assertEquals(results.get(6).score, 0.046, .01);
-        assertEquals(results.get(6).document.get("Speaker"), "Martin Luther King, Jr.");
     }
 }

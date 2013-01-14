@@ -4,18 +4,17 @@
 package io.algorithms.util;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.StringReader;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -25,17 +24,10 @@ import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.mahout.classifier.sgd.CsvRecordFactory;
-import org.apache.mahout.classifier.sgd.RecordFactory;
-import org.apache.mahout.math.Vector;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.JsonParseException;
 
-import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
-import com.googlecode.jcsv.CSVStrategy;
-import com.googlecode.jcsv.reader.CSVReader;
-import com.googlecode.jcsv.reader.internal.CSVReaderBuilder;
-import com.googlecode.jcsv.reader.internal.DefaultCSVEntryParser;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.config.ClientConfig;
@@ -121,144 +113,189 @@ public final class IOUtils {
         return TYPES.get(type);
     }
     
-    
-    private static final class RajivsSuperCSVRecordFactory implements RecordFactory {
-        final ConcurrentMap<String, Integer> dict = new ConcurrentHashMap<String, Integer>();
-        final String targetColumnName;
-        final Map<String, String> columnNameToTypeMap;
-        List<String> targetCategories;
-        int maxTargetValue;
-        String[] columnNames;
-        
-        /**
-         * @param targetColumnName
-         * @param columnNameToTypeMap
-         */
-        public RajivsSuperCSVRecordFactory(String targetColumnName,
-                Map<String, String> columnNameToTypeMap) {
-            this.targetColumnName = targetColumnName;
-            this.columnNameToTypeMap = columnNameToTypeMap;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.mahout.classifier.sgd.RecordFactory#defineTargetCategories(java.util.List)
-         */
-        @Override
-        public void defineTargetCategories(List<String> list) {
-            this.targetCategories = list;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.mahout.classifier.sgd.RecordFactory#maxTargetValue(int)
-         */
-        @Override
-        public RecordFactory maxTargetValue(int i) {
-            this.maxTargetValue = i;
-            return this;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.mahout.classifier.sgd.RecordFactory#usesFirstLineAsSchema()
-         */
-        @Override
-        public boolean usesFirstLineAsSchema() {
-            return true;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.mahout.classifier.sgd.RecordFactory#processLine(java.lang.String, org.apache.mahout.math.Vector)
-         */
-        @Override
-        public int processLine(String s, Vector vector) {
-            Preconditions.checkNotNull(s);
-            System.out.println(s);
-            Preconditions.checkNotNull(vector);
-            Preconditions.checkArgument(vector.size() == columnNames.length);
-            s = s.replace("\\\"", "");
-            CSVReader<String[]> reader = new CSVReaderBuilder<String[]>(new StringReader(s)).strategy(CSVStrategy.UK_DEFAULT).entryParser(new DefaultCSVEntryParser()).build();
- 
-            int output = -1;
-
-            try {
-                String[] values = reader.readNext();
-                Preconditions.checkArgument(values.length == columnNames.length);
-                // TODO: Fix. Target may not be the last column
-                vector.set(values.length - 1, 1);
-                for (int index = 0; index < values.length; index++) {
-                    String value = values[index];
-                    String columnName = columnNames[index];
-                    String type = columnNameToTypeMap.get(columnName);
-                    double valueDouble = 0;
-                    if (type.equals("word")) {
-                        synchronized (dict) {
-                            if (dict.containsKey(value)) {
-                                valueDouble = dict.get(value);
-                            } else {
-                                dict.put(value, dict.size());
-                                valueDouble = dict.size();
-                            }
-                        }
-                    } else if (type.equals("numeric")) {
-                        valueDouble = value.isEmpty() ? 0 : Double.parseDouble(value.replaceAll(",", ""));
-                    }
-                    boolean target = columnName.equals(targetColumnName);
-                    if (!target) {
-                        vector.set(index, valueDouble);
-                    } else if (targetCategories.contains(value)){
-                        return targetCategories.indexOf(value);
-                    }
-                }
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return output;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.mahout.classifier.sgd.RecordFactory#getPredictors()
-         */
-        @Override
-        public Iterable<String> getPredictors() {
-            return Arrays.asList(columnNames);
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.mahout.classifier.sgd.RecordFactory#getTraceDictionary()
-         */
-        @Override
-        public Map<String, Set<Integer>> getTraceDictionary() {
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.mahout.classifier.sgd.RecordFactory#includeBiasTerm(boolean)
-         */
-        @Override
-        public RecordFactory includeBiasTerm(boolean flag) {
-            return this;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.mahout.classifier.sgd.RecordFactory#getTargetCategories()
-         */
-        @Override
-        public List<String> getTargetCategories() {
-            return targetCategories;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.mahout.classifier.sgd.RecordFactory#firstLine(java.lang.String)
-         */
-        @Override
-        public void firstLine(String s) {
-            CSVReader<String[]> reader = new CSVReaderBuilder<String[]>(new StringReader(s)).strategy(CSVStrategy.UK_DEFAULT).entryParser(new DefaultCSVEntryParser()).build();
-            try {
-                columnNames = reader.readNext();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    /**
+     * Returns the sha-1 checksum of the file
+     * @param file
+     * @return
+     * @throws NoSuchAlgorithmException
+     * @throws IOException
+     */
+    public static String getSha1HashAsHexString(File file) throws NoSuchAlgorithmException, IOException {
+        if (file == null) return null;
+        return getSha1HashAsHexString(new FileInputStream(file));
     }
+    
+    /**
+     * Returns the sha-1 checksum of the inputstream as a hex string
+     * @param inputStream
+     * @return
+     * @throws NoSuchAlgorithmException
+     * @throws IOException
+     */
+    public static String getSha1HashAsHexString(InputStream inputStream) throws NoSuchAlgorithmException, IOException {
+        if (inputStream == null) return null;
+        
+        MessageDigest md = MessageDigest.getInstance("SHA1");
+        byte[] dataBytes = new byte[1024];
+     
+        int nread = 0; 
+     
+        try {
+            while ((nread = inputStream.read(dataBytes)) != -1) {
+                md.update(dataBytes, 0, nread);
+            }
+        } finally {
+            inputStream.close();
+        }
+        
+        byte[] mdbytes = md.digest();
+     
+        //convert the byte to hex format
+        StringBuffer sb = new StringBuffer("");
+        for (int i = 0; i < mdbytes.length; i++) {
+            sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
+        }
+
+        return sb.toString();
+    }
+//    
+//    private static final class RajivsSuperCSVRecordFactory implements RecordFactory {
+//        final ConcurrentMap<String, Integer> dict = new ConcurrentHashMap<String, Integer>();
+//        final String targetColumnName;
+//        final Map<String, String> columnNameToTypeMap;
+//        List<String> targetCategories;
+//        int maxTargetValue;
+//        String[] columnNames;
+//        
+//        /**
+//         * @param targetColumnName
+//         * @param columnNameToTypeMap
+//         */
+//        public RajivsSuperCSVRecordFactory(String targetColumnName,
+//                Map<String, String> columnNameToTypeMap) {
+//            this.targetColumnName = targetColumnName;
+//            this.columnNameToTypeMap = columnNameToTypeMap;
+//        }
+//
+//        /* (non-Javadoc)
+//         * @see org.apache.mahout.classifier.sgd.RecordFactory#defineTargetCategories(java.util.List)
+//         */
+//        @Override
+//        public void defineTargetCategories(List<String> list) {
+//            this.targetCategories = list;
+//        }
+//
+//        /* (non-Javadoc)
+//         * @see org.apache.mahout.classifier.sgd.RecordFactory#maxTargetValue(int)
+//         */
+//        @Override
+//        public RecordFactory maxTargetValue(int i) {
+//            this.maxTargetValue = i;
+//            return this;
+//        }
+//
+//        /* (non-Javadoc)
+//         * @see org.apache.mahout.classifier.sgd.RecordFactory#usesFirstLineAsSchema()
+//         */
+//        @Override
+//        public boolean usesFirstLineAsSchema() {
+//            return true;
+//        }
+//
+//        /* (non-Javadoc)
+//         * @see org.apache.mahout.classifier.sgd.RecordFactory#processLine(java.lang.String, org.apache.mahout.math.Vector)
+//         */
+//        @Override
+//        public int processLine(String s, Vector vector) {
+//            Preconditions.checkNotNull(s);
+//            System.out.println(s);
+//            Preconditions.checkNotNull(vector);
+//            Preconditions.checkArgument(vector.size() == columnNames.length);
+//            s = s.replace("\\\"", "");
+//            CSVReader<String[]> reader = new CSVReaderBuilder<String[]>(new StringReader(s)).strategy(CSVStrategy.UK_DEFAULT).entryParser(new DefaultCSVEntryParser()).build();
+// 
+//            int output = -1;
+//
+//            try {
+//                String[] values = reader.readNext();
+//                Preconditions.checkArgument(values.length == columnNames.length);
+//                // TODO: Fix. Target may not be the last column
+//                vector.set(values.length - 1, 1);
+//                for (int index = 0; index < values.length; index++) {
+//                    String value = values[index];
+//                    String columnName = columnNames[index];
+//                    String type = columnNameToTypeMap.get(columnName);
+//                    double valueDouble = 0;
+//                    if (type.equals("word")) {
+//                        synchronized (dict) {
+//                            if (dict.containsKey(value)) {
+//                                valueDouble = dict.get(value);
+//                            } else {
+//                                dict.put(value, dict.size());
+//                                valueDouble = dict.size();
+//                            }
+//                        }
+//                    } else if (type.equals("numeric")) {
+//                        valueDouble = value.isEmpty() ? 0 : Double.parseDouble(value.replaceAll(",", ""));
+//                    }
+//                    boolean target = columnName.equals(targetColumnName);
+//                    if (!target) {
+//                        vector.set(index, valueDouble);
+//                    } else if (targetCategories.contains(value)){
+//                        return targetCategories.indexOf(value);
+//                    }
+//                }
+//            } catch (NumberFormatException e) {
+//                e.printStackTrace();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            return output;
+//        }
+//
+//        /* (non-Javadoc)
+//         * @see org.apache.mahout.classifier.sgd.RecordFactory#getPredictors()
+//         */
+//        @Override
+//        public Iterable<String> getPredictors() {
+//            return Arrays.asList(columnNames);
+//        }
+//
+//        /* (non-Javadoc)
+//         * @see org.apache.mahout.classifier.sgd.RecordFactory#getTraceDictionary()
+//         */
+//        @Override
+//        public Map<String, Set<Integer>> getTraceDictionary() {
+//            return null;
+//        }
+//
+//        /* (non-Javadoc)
+//         * @see org.apache.mahout.classifier.sgd.RecordFactory#includeBiasTerm(boolean)
+//         */
+//        @Override
+//        public RecordFactory includeBiasTerm(boolean flag) {
+//            return this;
+//        }
+//
+//        /* (non-Javadoc)
+//         * @see org.apache.mahout.classifier.sgd.RecordFactory#getTargetCategories()
+//         */
+//        @Override
+//        public List<String> getTargetCategories() {
+//            return targetCategories;
+//        }
+//
+//        /* (non-Javadoc)
+//         * @see org.apache.mahout.classifier.sgd.RecordFactory#firstLine(java.lang.String)
+//         */
+//        @Override
+//        public void firstLine(String s) {
+//            CSVReader<String[]> reader = new CSVReaderBuilder<String[]>(new StringReader(s)).strategy(CSVStrategy.UK_DEFAULT).entryParser(new DefaultCSVEntryParser()).build();
+//            try {
+//                columnNames = reader.readNext();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
 }
