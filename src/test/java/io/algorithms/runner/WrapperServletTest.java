@@ -52,7 +52,7 @@ public class WrapperServletTest {
     /**
      * Test method for {@link io.algorithms.runner.WrapperServlet#process(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)}.
      */
-    @Test
+//    @Test
     public void negativeTestProcessNullParameters() throws Exception {
         addBoilerplateRequestParameters();
         try {
@@ -66,7 +66,7 @@ public class WrapperServletTest {
     /**
      * Test method for {@link io.algorithms.runner.WrapperServlet#process(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)}.
      */
-    @Test
+//    @Test
     public void testProcess1() throws Exception {
         addBoilerplateRequestParameters();
         request.addParameter(REQUEST_PARAMETER_PARAMETERS, "{\"text\":{\"value\":\"Teams consist of diversity and compromise\",\"datatype\":\"string\"}}");
@@ -82,7 +82,7 @@ public class WrapperServletTest {
     /**
      * Test method for {@link io.algorithms.runner.WrapperServlet#process(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)}.
      */
-    @Test
+//    @Test
     public void testProcessExtraStringParameters() throws Exception {
         addBoilerplateRequestParameters();
         request.addParameter(REQUEST_PARAMETER_PARAMETERS, "{\"text\":{\"value\":\"Teams consist of diversity and compromise\",\"datatype\":\"string\"}, \"second\":{\"value\":\"2048\"}}");
@@ -98,7 +98,7 @@ public class WrapperServletTest {
     /**
      * Test method for {@link io.algorithms.runner.WrapperServlet#process(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)}.
      */
-    @Test
+//    @Test
     public void testProcessExtraDatasourceParameters() throws Exception {
         addBoilerplateRequestParameters();
         request.addParameter(REQUEST_PARAMETER_PARAMETERS, "{\"text\":{\"value\":\"Teams consist of diversity and compromise\",\"datatype\":\"string\"}, \"second\":{\"value\":\"2740\", \"datatype\":\"datasource\"}}");
@@ -115,16 +115,16 @@ public class WrapperServletTest {
      * Test method for {@link io.algorithms.runner.WrapperServlet#process(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)}.
      */
 //    @Test
-//    public void testProcessInvalidDatasourceParameter() throws Exception {
-//        addBoilerplateRequestParameters();
-//        request.addParameter(REQUEST_PARAMETER_PARAMETERS, "{\"second\":{\"value\":\"2740\", \"datatype\":\"datasource\"},\"text\":{\"value\":\"Teams consist of diversity and compromise\",\"datatype\":\"string\"}}");
-//        try {
-//            servlet.process(request, response);
-//            fail("Supplied binary file should have thrown a json exception");
-//        } catch (ServletException e) {
-//            assertTrue(e.getCause() instanceof InvocationTargetException);
-//        }
-//    }
+    public void testProcessInvalidDatasourceParameter() throws Exception {
+        addBoilerplateRequestParameters();
+        request.addParameter(REQUEST_PARAMETER_PARAMETERS, "{\"second\":{\"value\":\"2740\", \"datatype\":\"datasource\"},\"text\":{\"value\":\"Teams consist of diversity and compromise\",\"datatype\":\"string\"}}");
+        try {
+            servlet.process(request, response);
+            fail("Supplied binary file should have thrown a json exception");
+        } catch (ServletException e) {
+            assertTrue(e.getCause() instanceof InvocationTargetException);
+        }
+    }
     
     /**
      * Common to all tests.
