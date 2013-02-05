@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryParser.ParseException;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**
