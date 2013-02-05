@@ -61,7 +61,7 @@ public class LuceneTest {
      */
     @Test
     public void testSearchZip() throws Exception {
-        List<ScoreDocument> results = lucene.searchZip(zipFile, null, "dream");
+        List<ScoreDocument> results = lucene.searchZip(zipFile, "dream");
         assertNotNull(results);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).score, 0.204, .01);
