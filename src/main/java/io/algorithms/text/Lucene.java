@@ -27,15 +27,12 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Store;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -52,7 +49,7 @@ import com.googlecode.jcsv.reader.internal.DefaultCSVEntryParser;
  * Exposes index and search via lucene.
  */
 public class Lucene {
-    static final Version LUCENE_CURRENT = Version.LUCENE_40;
+    static final Version LUCENE_CURRENT = Version.LUCENE_36;
     static final File INDEX_FOLDER = new File("tmp", "lucene-index");
     static final String INDEX_FILE_PREFIX = LUCENE_CURRENT + "-";
     static final String FIELD_NAME = "Name", FIELD_TEXT = "Text";
@@ -73,9 +70,9 @@ public class Lucene {
             List<Document> documents = new ArrayList<Document>();
             while ((ze = zis.getNextEntry()) != null) {
                 Document doc = new Document();
-                doc.add(new StringField(FIELD_NAME, ze.getName(), Store.YES));
+                doc.add(new Field(FIELD_NAME, ze.getName(), Field.Store.YES, Field.Index.ANALYZED));
                 String text = new String(StreamUtils.getBytes(zis), Charset.defaultCharset());
-                doc.add(new TextField(FIELD_TEXT, text, Store.YES));
+                doc.add(new Field(FIELD_TEXT, text, Store.YES, Field.Index.ANALYZED));
                 documents.add(doc);
             }
             return index(documents, indexDir);
@@ -107,7 +104,7 @@ public class Lucene {
                 for (int i = 0; i < header.size(); i++) {
                     String fieldName = header.get(i);
                     String fieldValue = line[i];
-                    document.add(new Field(fieldName, fieldValue, TextField.TYPE_STORED));
+                    document.add(new Field(fieldName, fieldValue, Field.Store.YES, Field.Index.ANALYZED));
                 }
                 documents.add(document);
             }
@@ -154,10 +151,10 @@ public class Lucene {
         return search(d, searchField, searchTerm);
     }
     
-    public List<ScoreDocument> searchZip(File zipFile, String searchField, String searchTerm) throws IOException, ParseException, NoSuchAlgorithmException {
+    public List<ScoreDocument> searchZip(File zipFile, String searchTerm) throws IOException, ParseException, NoSuchAlgorithmException {
         File dir = getIndexDirForFile(zipFile);
         Directory d = dir.exists() ? FSDirectory.open(dir) : indexZip(zipFile, dir);
-        return search(d, searchField, searchTerm);
+        return search(d, FIELD_TEXT, searchTerm);
     }
     
     /**
@@ -172,11 +169,12 @@ public class Lucene {
      */
     List<ScoreDocument> search(Directory index, String searchField, String searchTerm) throws IOException, ParseException {
         IndexReader ireader = null;
+        IndexSearcher isearcher = null;
         List<ScoreDocument> results = new ArrayList<ScoreDocument>();
         try {
             // Now search the index:
-            ireader = DirectoryReader.open(index);
-            IndexSearcher isearcher = new IndexSearcher(ireader);
+            ireader = IndexReader.open(index);
+            isearcher = new IndexSearcher(ireader);
             if (searchField == null) searchField = FIELD_TEXT;
             
             QueryParser parser = new QueryParser(LUCENE_CURRENT, searchField, analyzer);
@@ -191,6 +189,7 @@ public class Lucene {
             }
         } finally {
             ireader.close();
+            isearcher.close();
         }
         Collections.sort(results);
         return results;
@@ -207,9 +206,8 @@ public class Lucene {
         public ScoreDocument(double score, Document doc) {
             this.score = score;
             document = new LinkedHashMap<String, String>();
-            for (IndexableField field : doc.getFields()) {
-                if (!field.name().equals("Transcript"))
-                    document.put(field.name(), doc.get(field.name()));
+            for (Fieldable field : doc.getFields()) {
+                document.put(field.name(), doc.get(field.name()));
             }
         }
 
