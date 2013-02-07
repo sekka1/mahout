@@ -367,7 +367,7 @@ public class KMeansService {
 			try {
 				uploadedArchive = new File(Thread.currentThread()
 						.getContextClassLoader()
-						.getResource("seinfeld-scripts-preprocessed.tar.gz")
+						.getResource("clustering/seinfeld/seinfeld-scripts-preprocessed.tar.gz")
 						.toURI());
 			} catch (URISyntaxException e) {
 				// TODO Auto-generated catch block
