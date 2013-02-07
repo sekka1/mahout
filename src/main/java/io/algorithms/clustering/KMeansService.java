@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 import javax.ws.rs.Consumes;
@@ -30,7 +32,11 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.clustering.kmeans.KMeansDriver;
 import org.apache.mahout.text.SequenceFilesFromDirectory;
 import io.algorithms.clustering.ClusterDumper;
+import io.algorithms.util.IOUtils;
+
 import org.apache.mahout.vectorizer.SparseVectorsFromSequenceFiles;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.plexus.archiver.tar.TarGZipUnArchiver;
 import org.codehaus.plexus.logging.console.ConsoleLogger;
 import org.slf4j.Logger;
@@ -59,9 +65,6 @@ public class KMeansService {
 	private static final File PATH_SEQUENCE_FILES = new File(PATH_DATA_PREFIX + File.separator + "sequence-files");
 	private static final File PATH_VECTOR_FILES = new File (PATH_DATA_PREFIX + File.separator + "vectors");
 	private static final File PATH_OUTPUT = new File(PATH_DATA_PREFIX + File.separator + "output");
-	private static final String SEINFELD_PREFIX = "out-seinfeld";
-	private static final File PATH_OUT_SEINFELD_VECTORS = new File(SEINFELD_PREFIX+ "-vectors");
-	private static final File PATH_OUT_SEINFELD_SEQFILES = new File(SEINFELD_PREFIX + "-seqfiles");
 	private static final File PATH_IN_SEINFELD_SCRIPTS = new File("seinfeld-scripts-preprocessed");
 	private static File SEINFELD_ARCHIVE = null;
 	static {
@@ -71,7 +74,12 @@ public class KMeansService {
 	}
 			
 	private static final Logger log = LoggerFactory.getLogger(KMeansService.class);
-
+	private static final Map<String, String> exampleDatasetMap = new HashMap<String, String>();
+	private static final String DATASET_SEINFELD = "seinfeld";
+	static {
+		exampleDatasetMap.put(DATASET_SEINFELD, "5555");
+	}
+	
 	// This method is called if TEXT_PLAIN is request
 	@GET
 	@Path("/seinfeld")
@@ -270,32 +278,59 @@ public class KMeansService {
 	}
 	
 	@POST
-	@ApiOperation(value = "First converts uploaded archive into sequence files, then convert into vectors and then run K-Means algorithm")
+	@ApiOperation(value = "Expand dataset into sequence files, convert into vectors and then run K-Means clustering algorithm")
 	@ApiErrors(value= {@ApiError(code = 500, reason = "Internal Server Error"), @ApiError(code=400, reason="No archive uploaded")})
-	public Response run(	
+	public Response run(
+	    @ApiParam(value="Authentication token", required=true)
+	    @QueryParam("authToken")
+	    String authToken,
+	    
+	    @ApiParam(value="Calling algorithms.io API server", required=true)
+	    @QueryParam("algoServer")
+	    String algoServer,
+	    
+	    @ApiParam(value="Example to run",
+	    	allowableValues="Seinfeld Episodes")
+	    @QueryParam("example")
+	    String example,
+	    
+	    @ApiParam(value="Datasource ID", required=true)
+	    @QueryParam("datasource")
+	    String datasource,
+	    
 		@ApiParam(value = "Max n-gram size used to generate sparse vectors") 
 		@QueryParam("maxNGramSize") 
 		String maxNGramSize,
-		@ApiParam(value = "Min document frequency") @QueryParam("minDF") String minDF,
-		@ApiParam(value = "The max percentage of docs for the DF.  Can be used to remove really high frequency terms."
+		
+		@ApiParam(value = "Min document frequency") 
+	    @QueryParam("minDF") 
+	    String minDF,
+		
+	    @ApiParam(value = "The max percentage of docs for the DF.  Can be used to remove really high frequency terms."
 				+ " Expressed as an integer between 0 and 100. Default is 99.  If maxDFSigma is also set, "
-				+ "it will override this value.") @QueryParam("maxDF") String maxDF,
+				+ "it will override this value.") 
+	    @QueryParam("maxDF")
+	    String maxDF,
 		
 		@ApiParam(value = "The kind of weight to use. Currently TF or TFIDF") 
 		@QueryParam("weight")
 		String weight,	
+		
 		@ApiParam(value = "The norm to use, expressed as either a float or \"INF\" if you want to use the Infinite norm.  "
 				+ "Must be greater or equal to 0.  The default is not to normalize") 
 		@QueryParam("norm") 
 		String norm,
-		@ApiParam(value="Fully qualified class name of analyzer",allowableValues="org.apache.mahout.analysis.SeinfeldScriptAnalyzer,AnalyzerB,AnalyzerC")
+		
+		@ApiParam(value="Fully qualified class name of analyzer",
+			allowableValues="org.apache.mahout.analysis.SeinfeldScriptAnalyzer," +
+					"org.apache.mahout.text.MailArchivesClusteringAnalyzer," +
+					"org.apache.mahout.text.wikipedia.WikipediaAnalyzer")
 		@QueryParam("analyzerName")
 		String analyzerName,
 		
 		@ApiParam(value = "Maximum number of iterations which once reached, iterations will stop",
 		defaultValue="10",
-		allowableValues="range[1,20]",
-		required=true) 
+		allowableValues="range[1,20]") 
 		@QueryParam("maxIter")  
 		String maxIter,
 		
@@ -309,25 +344,102 @@ public class KMeansService {
 
 		@ApiParam(value = "Distance measure used to calculate distances from centroids",
 			defaultValue="SquaredEuclidean", 
-			allowableValues="SquaredEuclidean,Euclidean,Mahalanobis") 
+			allowableValues="org.apache.mahout.common.distance.SquaredEuclidean," + 
+				"org.apache.mahout.common.distance.Euclidean," +
+				"org.apache.mahout.common.distance.TanimotoDistanceMeasure," +
+				"org.apache.mahout.common.distance.CosineDistanceMeasure," +
+				"org.apache.mahout.common.distance.WeightedManhattanDistanceMeasure")
 		@QueryParam("distanceMeasure") 
-		String distanceMeasure)
+		String distanceMeasure,
+		
+		@ApiParam(value = "How many top feature words to show",
+			defaultValue="5",
+			required=true) 
+		@QueryParam("numWords") 
+		String numWords,
+		
+		@ApiParam(value = "Use for testing directly with local dataset rather than downloading", defaultValue="false")
+	    @QueryParam("test")
+	    String test
+	)
 	{
-		if (!uploadedArchive.exists()) {
-			return Response.status(400).entity("There's no archive of input data received yet.  Please try again to upload an archive").build();
+		if (test != null && Boolean.parseBoolean(test) == Boolean.TRUE) {
+			try {
+				uploadedArchive = new File(Thread.currentThread()
+						.getContextClassLoader()
+						.getResource("seinfeld-scripts-preprocessed.tar.gz")
+						.toURI());
+			} catch (URISyntaxException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+		else {
+			String dsID = null;
+			if (example!=null) {
+				exampleDatasetMap.get(example.toLowerCase());
+			}
+			if (dsID == null) {
+				dsID = datasource;
+			}
+			try {
+				uploadedArchive = IOUtils.downloadFileFromAPI(authToken,
+						algoServer, dsID);
+			} catch (JsonParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (JsonMappingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if (!uploadedArchive.exists()) {
+				return Response.status(400)
+						.entity("Dataset [" + dsID + "] download failed")
+						.build();
+			}
+		}	
+		
+		final TarGZipUnArchiver ua = new TarGZipUnArchiver();
+		ua.enableLogging(new ConsoleLogger(
+				org.codehaus.plexus.logging.Logger.LEVEL_INFO, "console"));
+
+		
+		log.info(PATH_EXTRACTED_ARCHIVE + " created, cleaning up");
+		try {
+			deleteRecursive(PATH_EXTRACTED_ARCHIVE);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		PATH_EXTRACTED_ARCHIVE.mkdirs();
+
+		System.out.println("Extracting content of " + uploadedArchive);
+		log.info("Extracting content of " + uploadedArchive.getName() + " to directory " + PATH_EXTRACTED_ARCHIVE);
+		ua.setSourceFile(uploadedArchive);
+		ua.setDestDirectory(PATH_EXTRACTED_ARCHIVE);
+		ua.extract();
+		
+		// Check if the needed parameters are present before proceeding
+		StringBuffer missParamError = new StringBuffer();
+		if (analyzerName == null || maxNGramSize == null || maxDF == null || minDF == null || weight == null || norm == null) {
+			missParamError.append("Missing one of these parameters (\"maxNGramSize\", \"maxDF\", \"minDF\", \"weight\", \"norm\")" +
+					" needed for generating sparse vectors\n");		
+		}
+		if (numWords == null || numClusters == null || distanceMeasure == null) {
+			missParamError.append("Missing one of these clustering parameters (numClusters, distanceMeasure, numWords)");
+		}
+		if (missParamError.length() > 0) {
+			return Response.status(400).entity(missParamError.toString()).build();
+		}
+
+ 	
     	try {
-			// sequenceFilesFromArchive(uploadedArchive, PATH_EXTRACTED_ARCHIVE, PATH_SEQUENCE_FILES);
-			
-	    	final TarGZipUnArchiver ua = new TarGZipUnArchiver();
-	    	ua.enableLogging(new ConsoleLogger( org.codehaus.plexus.logging.Logger.LEVEL_INFO, "console" ));
-	    	System.out.println("Extracting content of " + uploadedArchive.getName() + " to directory " + uploadedArchive.getParent());
-	    	ua.setSourceFile(uploadedArchive);
-	    	ua.setDestDirectory(uploadedArchive.getParentFile());
-	    	ua.extract();
 	    	
 	    	ToolRunner.run(new SequenceFilesFromDirectory(), new String[] {
-	    		"--input", uploadedArchive.getParent(),
+	    		"--input", PATH_EXTRACTED_ARCHIVE.getCanonicalPath(),
 	    		"--output", PATH_SEQUENCE_FILES.getCanonicalPath() ,
 	    		"--charset","utf-8",
 	    		"--overwrite"
@@ -345,41 +457,53 @@ public class KMeansService {
 	                "--analyzerName", analyzerName,
 	                "--overwrite"
 				});
+	    	
 			ToolRunner.run(new KMeansDriver(), new String[] {
-				"--input", PATH_VECTOR_FILES + File.separator + "tfidf-vectors",
-				"--output", PATH_OUTPUT + File.separator + "clusters",
-				"--clusters", PATH_OUTPUT + File.separator + "initialclusters",
+				"--input", PATH_VECTOR_FILES.getCanonicalPath() + File.separator + "tfidf-vectors",
+				"--output", PATH_OUTPUT.getCanonicalPath() + File.separator + "clusters",
+				"--clusters", PATH_OUTPUT.getCanonicalPath() + File.separator + "initialclusters",
 				"--maxIter", maxIter,
 				"--numClusters", numClusters,
-				"--distanceMeasure", "org.apache.mahout.common.distance."+distanceMeasure+"DistanceMeasure",
+				"--distanceMeasure", distanceMeasure,
 				"--clustering",
 				"--overwrite",
 			});
+			
+
 			ToolRunner.run(new ClusterDumper(), new String[] {
-				"--seqFileDir", PATH_OUTPUT + File.separator + "clusters/clusters-1",
-				"--output", PATH_OUTPUT + File.separator + "dump",
-				"--pointsDir", PATH_OUTPUT + File.separator + "clusters/clusteredPoints",
-				"--numWords", "5",
-				"--dictionary", PATH_VECTOR_FILES + File.separator + "dictionary.file-0",
+				"--seqFileDir", PATH_OUTPUT.getCanonicalPath() + File.separator + "clusters/clusters-1",
+				"--output", PATH_OUTPUT.getCanonicalPath() + File.separator + "dump",
+				"--pointsDir", PATH_OUTPUT.getCanonicalPath() + File.separator + "clusters/clusteredPoints",
+				"--numWords", numWords,
+				"--dictionary", PATH_VECTOR_FILES.getCanonicalPath() + File.separator + "dictionary.file-0",
 				"--dictionaryType", "sequencefile"
 			});
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+		             .entity(e.getMessage() + " not found").type(MediaType.TEXT_PLAIN).build());
+//			return Response.status(400).entity(e.getMessage()).type(MediaType.TEXT_PLAIN).build();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return Response.status(500).entity(e.getMessage()).type(MediaType.TEXT_PLAIN).build();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return Response.status(500).entity(e.getMessage()).type(MediaType.TEXT_PLAIN).build();
 		}
     	
-		File output = new File(PATH_OUTPUT + File.separator + "clusters/dump");
+		File output;
 		String bigstring = null;
 		try {
+			output = new File(PATH_OUTPUT.getCanonicalPath() + File.separator + "dump");
 			bigstring = FileUtils.readFileToString(output);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	    
-        return Response.status(200).entity(bigstring).type("application/json").build(); 
+        return Response.status(200).entity(bigstring).type("application/text").build(); 
 	}
 	
     public static boolean deleteRecursive(File path) throws FileNotFoundException {
@@ -392,40 +516,7 @@ public class KMeansService {
         }
         return ret && path.delete();
     }
-	
-    public static void sequenceFilesFromGzipFile(File infile, boolean deleteOnSuccess) throws IOException
-    {
-    	  GZIPInputStream gin = new GZIPInputStream(new FileInputStream(infile));
-    	  File outfile = new File(infile.getParent(), infile.getName().replaceAll("\\.gz$",""));
-    	  FileOutputStream fos = new FileOutputStream(outfile);
-    	  byte[] buf = new byte[100000]; 
-    	  int len;
-    	  while ( ( len = gin.read(buf) ) > 0 )
-    	    fos.write(buf, 0, len);
-    	  gin.close();
-    	  fos.close();
-    	  if (deleteOnSuccess)
-    	    infile.delete();
-    }
-    
-    public static void sequenceFilesFromArchive(File inFile, File extractTo, File seqFilePath) throws Exception
-    {
-    	final TarGZipUnArchiver ua = new TarGZipUnArchiver();
-    	ua.enableLogging(new ConsoleLogger( org.codehaus.plexus.logging.Logger.LEVEL_INFO, "console" ));
-    	System.out.println("Extracting content of " + inFile.getCanonicalPath() + " to directory " + extractTo);
-    	ua.setSourceFile(inFile);
-    	extractTo.mkdirs();
-    	ua.setDestDirectory(extractTo);
-    	ua.extract();
-    	
-    	ToolRunner.run(new SequenceFilesFromDirectory(), new String[] {
-    		"--input", extractTo.getCanonicalPath(),
-    		"--output",seqFilePath.getCanonicalPath(),
-    		"--charset","utf-8",
-    		"--overwrite"
-    	});
-    }
-   
+     
     
     /**
      * @param args
