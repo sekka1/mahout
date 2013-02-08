@@ -59,18 +59,27 @@ import com.wordnik.swagger.annotations.ApiParam;
 @Produces({MediaType.APPLICATION_JSON})
 public class KMeansService {
 	
-	private static final String PATH_DATA_PREFIX = "data";
-	private static final File PATH_UPLOADED_ARCHIVE = new File(PATH_DATA_PREFIX + File.separator + "uploaded-archive");
-	private static final File PATH_EXTRACTED_ARCHIVE = new File(PATH_DATA_PREFIX + File.separator + "extracted-archive");
-	private static final File PATH_SEQUENCE_FILES = new File(PATH_DATA_PREFIX + File.separator + "sequence-files");
-	private static final File PATH_VECTOR_FILES = new File (PATH_DATA_PREFIX + File.separator + "vectors");
-	private static final File PATH_OUTPUT = new File(PATH_DATA_PREFIX + File.separator + "output");
-	private static final File PATH_IN_SEINFELD_SCRIPTS = new File("seinfeld-scripts-preprocessed");
+	private static File PATH_APP;
+	private static File PATH_EXTRACTED_ARCHIVE;
+	private static File PATH_SEQUENCE_FILES;
+	private static File PATH_VECTOR_FILES;
+	private static File PATH_OUTPUT;
 	private static File SEINFELD_ARCHIVE = null;
 	static {
-		PATH_UPLOADED_ARCHIVE.mkdirs();
-		PATH_EXTRACTED_ARCHIVE.mkdirs();
-		PATH_SEQUENCE_FILES.mkdir();
+		try {
+			PATH_APP = new File(Thread.currentThread().getContextClassLoader().getResource("/").toURI());
+			PATH_EXTRACTED_ARCHIVE = new File(PATH_APP.getCanonicalPath() + File.separator + "kmeans/extracted-archive");
+			PATH_SEQUENCE_FILES = new File(PATH_APP.getCanonicalPath() + File.separator + "kmeans/sequence-files");
+			PATH_VECTOR_FILES = new File (PATH_APP.getCanonicalPath() + File.separator + "kmeans/vectors");
+			PATH_OUTPUT = new File(PATH_APP.getCanonicalPath() + File.separator + "kmeans/output");
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 			
 	private static final Logger log = LoggerFactory.getLogger(KMeansService.class);
@@ -405,14 +414,13 @@ public class KMeansService {
 		final TarGZipUnArchiver ua = new TarGZipUnArchiver();
 		ua.enableLogging(new ConsoleLogger(
 				org.codehaus.plexus.logging.Logger.LEVEL_INFO, "console"));
-
-		
-		log.info(PATH_EXTRACTED_ARCHIVE + " created, cleaning up");
-		try {
-			deleteRecursive(PATH_EXTRACTED_ARCHIVE);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (PATH_EXTRACTED_ARCHIVE.exists()) {
+			try {
+				deleteRecursive(PATH_EXTRACTED_ARCHIVE);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		PATH_EXTRACTED_ARCHIVE.mkdirs();
 
