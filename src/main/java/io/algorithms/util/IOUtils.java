@@ -97,7 +97,10 @@ public final class IOUtils {
      * @throws IOException
      */
     public static File downloadFileFromAPI(String authToken, String algoServer, String dataSourceId) throws JsonParseException, JsonMappingException, IOException {
-        File output = new File(TMP_FOLDER, algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
+        File tmp = new File(TMP_FOLDER);
+        if (!tmp.isDirectory()) { tmp.mkdirs(); }
+        
+        File output = new File(tmp, algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
         if (output.exists()) { return output; } // TODO: Assumes that the dataset never changes. Need to verify checksum.
 
         ClientResponse response = Client.create(ALL_TRUSTING_CLIENT_CONFIG) // TODO: HIGHLY UNSAFE
