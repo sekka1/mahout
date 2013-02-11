@@ -42,7 +42,7 @@ public final class IOUtils {
     public static final String API_DATASET_URL_SUFFIX = "/dataset/id/",
             CONTENT_TYPE = "Content-Type",
             CONTENT_TYPE_JSON = "application/json",
-            TMP_FOLDER = "/tmp",
+            TMP_FOLDER = "tmp",
             AUTH_TOKEN = "authToken";
     private static final Map<String, Class<?>> TYPES = new HashMap<String, Class<?>>();
     private static final ClientConfig ALL_TRUSTING_CLIENT_CONFIG = new DefaultClientConfig();
@@ -50,6 +50,8 @@ public final class IOUtils {
         TYPES.put("string", String.class);
         TYPES.put("number", Double.class);
         TYPES.put("integer", Integer.class);
+        TYPES.put("map", Map.class);
+        TYPES.put("list", List.class);
         TYPES.put("datasource", File.class);
         
         try {
@@ -95,7 +97,10 @@ public final class IOUtils {
      * @throws IOException
      */
     public static File downloadFileFromAPI(String authToken, String algoServer, String dataSourceId) throws JsonParseException, JsonMappingException, IOException {
-        File output = new File(TMP_FOLDER, algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
+        File tmp = new File(TMP_FOLDER);
+        if (!tmp.isDirectory()) { tmp.mkdirs(); }
+        
+        File output = new File(tmp, algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
         if (output.exists()) { return output; } // TODO: Assumes that the dataset never changes. Need to verify checksum.
 
         ClientResponse response = Client.create(ALL_TRUSTING_CLIENT_CONFIG) // TODO: HIGHLY UNSAFE
