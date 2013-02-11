@@ -42,7 +42,7 @@ public final class IOUtils {
     public static final String API_DATASET_URL_SUFFIX = "/dataset/id/",
             CONTENT_TYPE = "Content-Type",
             CONTENT_TYPE_JSON = "application/json",
-            TMP_FOLDER = "/tmp",
+            TMP_FOLDER = "tmp",
             AUTH_TOKEN = "authToken";
     private static final Map<String, Class<?>> TYPES = new HashMap<String, Class<?>>();
     private static final ClientConfig ALL_TRUSTING_CLIENT_CONFIG = new DefaultClientConfig();
@@ -50,6 +50,8 @@ public final class IOUtils {
         TYPES.put("string", String.class);
         TYPES.put("number", Double.class);
         TYPES.put("integer", Integer.class);
+        TYPES.put("map", Map.class);
+        TYPES.put("list", List.class);
         TYPES.put("datasource", File.class);
         
         try {
