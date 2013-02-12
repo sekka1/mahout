@@ -56,7 +56,7 @@
 	</servlet>
     <servlet-mapping>
         <servlet-name>WrapperServlet</servlet-name>
-        <url-pattern>/rest/*</url-pattern>
+        <url-pattern>/wrapper/*</url-pattern>
     </servlet-mapping>
     	<servlet-mapping>
 		<servlet-name>clustering-service</servlet-name>
