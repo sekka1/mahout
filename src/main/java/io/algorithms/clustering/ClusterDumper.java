@@ -20,8 +20,6 @@ import org.apache.mahout.clustering.iterator.ClusterWritable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
-
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
