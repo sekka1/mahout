@@ -372,6 +372,8 @@ public class KMeansService {
 	    String test
 	)
 	{
+		System.out.println("algoServer=[" + algoServer + "]");
+		System.out.println("authToken=[" + authToken + "]");
 		if (test != null && Boolean.parseBoolean(test) == Boolean.TRUE) {
 			try {
 				uploadedArchive = new File(Thread.currentThread()
@@ -466,7 +468,7 @@ public class KMeansService {
 	                "--overwrite"
 				});
 	    	
-			ToolRunner.run(new KMeansDriver(), new String[] {
+ 			ToolRunner.run(new KMeansDriver(), new String[] {
 				"--input", PATH_VECTOR_FILES.getCanonicalPath() + File.separator + "tfidf-vectors",
 				"--output", PATH_OUTPUT.getCanonicalPath() + File.separator + "clusters",
 				"--clusters", PATH_OUTPUT.getCanonicalPath() + File.separator + "initialclusters",
@@ -510,9 +512,49 @@ public class KMeansService {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	    
-        return Response.status(200).entity(bigstring).type("application/text").build(); 
+		
+        return Response.status(200).entity(bigstring).type(MediaType.APPLICATION_JSON).build(); 
 	}
+	
+	@GET
+	@Path("/clusterdumper")
+	@ApiOperation(value="Dump cluster as a JSON")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response dumpCluster(
+		@ApiParam(value = "How many top feature words to show",
+			defaultValue="5") 
+		@QueryParam("numWords") 
+		String numWords)
+	{
+		
+		try {
+			ToolRunner.run(new ClusterDumper(), new String[] {
+				"--seqFileDir", PATH_OUTPUT.getCanonicalPath() + File.separator + "clusters/clusters-1",
+				"--output", PATH_OUTPUT.getCanonicalPath() + File.separator + "dump",
+				"--pointsDir", PATH_OUTPUT.getCanonicalPath() + File.separator + "clusters/clusteredPoints",
+				"--numWords", numWords,
+				"--dictionary", PATH_VECTOR_FILES.getCanonicalPath() + File.separator + "dictionary.file-0",
+				"--dictionaryType", "sequencefile"
+			});
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		File output;
+		String bigstring = null;
+		try {
+			output = new File(PATH_OUTPUT.getCanonicalPath() + File.separator + "dump");
+			bigstring = FileUtils.readFileToString(output);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	    
+        return Response.status(200).entity(bigstring).type(MediaType.APPLICATION_JSON).build(); 
+	}
+	
 	
     public static boolean deleteRecursive(File path) throws FileNotFoundException {
         if (!path.exists()) throw new FileNotFoundException(path.getAbsolutePath());
