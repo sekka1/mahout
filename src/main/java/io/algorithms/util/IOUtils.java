@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.io.ByteStreams;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
@@ -118,8 +119,12 @@ public final class IOUtils {
             .accept(MediaType.WILDCARD)
             .header(AUTH_TOKEN, authToken)
             .get(ClientResponse.class);
-        ByteStreams.copy(response.getEntityInputStream(), new FileOutputStream(output));
-        return output;
+        if (response.getClientResponseStatus().equals(Status.OK)) {
+            ByteStreams.copy(response.getEntityInputStream(), new FileOutputStream(output));
+            return output;
+        } else {
+            throw new IOException("Received HTTP " + response.getClientResponseStatus() + " from " + algoServer);
+        }
     }
     
     
