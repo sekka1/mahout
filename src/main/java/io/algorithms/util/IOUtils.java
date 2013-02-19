@@ -26,6 +26,8 @@ import javax.ws.rs.core.MediaType;
 import org.apache.mahout.classifier.sgd.CsvRecordFactory;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.JsonParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.io.ByteStreams;
 import com.sun.jersey.api.client.Client;
@@ -43,9 +45,12 @@ public final class IOUtils {
             CONTENT_TYPE = "Content-Type",
             CONTENT_TYPE_JSON = "application/json",
             TMP_FOLDER = "tmp",
+            TMP_FOLDER_FALLBACK = "/tmp",
             AUTH_TOKEN = "authToken";
     private static final Map<String, Class<?>> TYPES = new HashMap<String, Class<?>>();
     private static final ClientConfig ALL_TRUSTING_CLIENT_CONFIG = new DefaultClientConfig();
+    private static final Logger LOG = LoggerFactory.getLogger(IOUtils.class);
+    
     static {
         TYPES.put("string", String.class);
         TYPES.put("number", Double.class);
@@ -98,7 +103,12 @@ public final class IOUtils {
      */
     public static File downloadFileFromAPI(String authToken, String algoServer, String dataSourceId) throws JsonParseException, JsonMappingException, IOException {
         File tmp = new File(TMP_FOLDER);
-        if (!tmp.isDirectory()) { tmp.mkdirs(); }
+        if ((tmp.exists()
+                && !(tmp.isDirectory() && tmp.canWrite()))
+            || !tmp.mkdirs()) {
+            LOG.warn("Cannot use [" + TMP_FOLDER + "]. Falling back to [" + TMP_FOLDER_FALLBACK + "]");
+            tmp = new File(TMP_FOLDER_FALLBACK);
+        }
         
         File output = new File(tmp, algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
         if (output.exists()) { return output; } // TODO: Assumes that the dataset never changes. Need to verify checksum.
