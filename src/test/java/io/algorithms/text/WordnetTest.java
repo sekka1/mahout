@@ -37,7 +37,7 @@ public class WordnetTest {
     /**
      * Test method for {@link io.algorithms.text.RelevantSpeechFinder#getRelatedWords(java.lang.String)}.
      */
-    @Test
+    // @Test // This won't work on hosts that don't have wordnet
     public void testGetRelatedWords() throws IOException {
         String word = "tall";
         List<String> relatedWords = wordnet.getRelatedWords(word);
