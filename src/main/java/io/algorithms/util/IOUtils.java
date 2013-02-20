@@ -104,9 +104,7 @@ public final class IOUtils {
      */
     public static File downloadFileFromAPI(String authToken, String algoServer, String dataSourceId) throws JsonParseException, JsonMappingException, IOException {
         File tmp = new File(TMP_FOLDER);
-        if ((tmp.exists()
-                && !(tmp.isDirectory() && tmp.canWrite()))
-            || !tmp.mkdirs()) {
+        if (!(tmp.exists() && tmp.isDirectory() && tmp.canWrite() || tmp.mkdirs())) {
             LOG.warn("Cannot use [" + TMP_FOLDER + "]. Falling back to [" + TMP_FOLDER_FALLBACK + "]");
             tmp = new File(TMP_FOLDER_FALLBACK);
         }
