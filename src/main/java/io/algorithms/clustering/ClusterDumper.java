@@ -141,48 +141,50 @@ public final class ClusterDumper extends AbstractJob {
         Path path = seqFile.getPath();
         //System.out.println("Input Path: " + path); doesn't this interfere with output?
         SequenceFile.Reader reader = new SequenceFile.Reader(fs, path, conf);
+        
         try {
           Writable key = reader.getKeyClass().asSubclass(Writable.class).newInstance();
           Writable value = reader.getValueClass().asSubclass(Writable.class).newInstance();
+          writer.write("{");
+          boolean first = true;
           while (reader.next(key, value)) {
-            Cluster cluster = ((ClusterWritable) value).getValue();
-//            String fmtStr = useJSON ? cluster.asJsonString() : cluster.asFormatString(dictionary);
-//            if (subString > 0 && fmtStr.length() > subString) {
-//              writer.write(':');
-//              writer.write(fmtStr, 0, Math.min(subString, fmtStr.length()));
-//            } else {
-//              writer.write(fmtStr);
-//            }
+        	  if (!first) {
+        		  writer.write(",");
+        	  }
+        	  else {
+        		  first = false;
+        	  }
+        	  writer.write("\"");
+        	  Cluster cluster = ((ClusterWritable) value).getValue();
+        	  writer.write("C-");
+        	  writer.write(String.valueOf(cluster.getId()));
+        	  writer.write("\":{");
 
-            writer.write("C-");
-            writer.write(String.valueOf(cluster.getId()));
-            writer.write(" ");
-
-            if (dictionary != null) {
-              String topTerms = getTopFeatures(cluster.getCenter(), dictionary, numTopFeatures);
-//              writer.write("\tTop Terms: ");
-              writer.write(topTerms);
-              writer.write('\n');
-            }
+	            if (dictionary != null) {
+	              String topTerms = getTopFeatures(cluster.getCenter(), dictionary, numTopFeatures);
+	              writer.write("\"top features\":");
+	              writer.write(topTerms);
+	              writer.write(",");
+	            }
 
             List<WeightedVectorWritable> points = clusterIdToPoints.get(cluster.getId());
             if (points != null) {
-//              writer.write("\tWeight:  Point:\n\t");
-              for (WeightedVectorWritable point : points) {
-                NamedVector namedVector = (NamedVector) point.getVector();
-                writer.write("- ");
-                writer.write(namedVector.getName());
-                writer.write("\n");
-//                writer.write(String.valueOf(point.getWeight()));
-//                writer.write(": ");
-//                writer.write(AbstractCluster.formatVector(point.getVector(), dictionary));
-//                if (iterator.hasNext()) {
-//                  writer.write("\n\t");
-//                }
-              }
-              writer.write('\n');
+                writer.write("\"named vectors\":[");
+                Iterator pointiter = points.iterator();
+                while (pointiter.hasNext()) {
+                	writer.write("\"");
+                	NamedVector namedVector = (NamedVector) ((WeightedVectorWritable)pointiter.next()).getVector();
+                	writer.write(namedVector.getName());
+                	writer.write("\"");
+                	if (pointiter.hasNext()) {
+                		writer.write(",");
+                	}	
+                }
+                writer.write("]");
             }
+            writer.write("}");
           }
+          writer.write("}");
         } finally {
           reader.close();
         }
@@ -317,7 +319,7 @@ public final class ClusterDumper extends AbstractJob {
     }
 
     StringBuilder sb = new StringBuilder(100);
-    sb.append("[");
+    sb.append("[\"");
 
     Iterator<Pair<String, Double>> iterator = topTerms.iterator();
     while (iterator.hasNext()) {
@@ -325,13 +327,13 @@ public final class ClusterDumper extends AbstractJob {
       String term = item.getFirst();
       sb.append(StringUtils.capitalize(term));
       if (iterator.hasNext()) {
-        sb.append(", ");
+        sb.append("\", \"");
       }
 //      sb.append(StringUtils.rightPad(term, 40));
 //      sb.append("=>");
 //
     }
-    sb.append("]");
+    sb.append("\"]");
     return sb.toString();
   }
 
