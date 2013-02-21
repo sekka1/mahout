@@ -103,14 +103,8 @@ public final class IOUtils {
      * @throws IOException
      */
     public static File downloadFileFromAPI(String authToken, String algoServer, String dataSourceId) throws JsonParseException, JsonMappingException, IOException {
-        File tmp = new File(TMP_FOLDER);
-        if (!(tmp.exists() && tmp.isDirectory() && tmp.canWrite() || tmp.mkdirs())) {
-            LOG.warn("Cannot use [" + TMP_FOLDER + "]. Falling back to [" + TMP_FOLDER_FALLBACK + "]");
-            tmp = new File(TMP_FOLDER_FALLBACK);
-        }
-
         LOG.info("Requested dataset id [" + dataSourceId + "] from algoServer [" + algoServer + "]");
-        File output = new File(tmp, algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
+        File output = new File(getTmpFolder(), algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
         if (output.exists()) { // TODO: Assumes that the dataset never changes. Need to verify checksum.
             LOG.info("Dataset [" + dataSourceId + "] has already been downloaded to local filesystem.");
             return output;
@@ -129,7 +123,15 @@ public final class IOUtils {
             throw new IOException("Received HTTP " + response.getClientResponseStatus() + " from " + algoServer);
         }
     }
-    
+
+    public static File getTmpFolder() {
+        File tmp = new File(TMP_FOLDER);
+        if (!(tmp.exists() && tmp.isDirectory() && tmp.canWrite() || tmp.mkdirs())) {
+            LOG.warn("Cannot use [" + TMP_FOLDER + "]. Falling back to [" + TMP_FOLDER_FALLBACK + "]");
+            tmp = new File(TMP_FOLDER_FALLBACK);
+        }
+        return tmp;
+    }
     
     public static Class<?> getClazz(String type) {
         if (type == null) { type = "string"; }
