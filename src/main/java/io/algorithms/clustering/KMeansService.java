@@ -91,15 +91,6 @@ public class KMeansService {
 		exampleDatasetMap.put(DATASET_SEINFELD, "5555");
 	}
 	
-	// This method is called if TEXT_PLAIN is request
-	@GET
-	@Path("/seinfeld")
-	@Produces(MediaType.TEXT_PLAIN)
-	public String introduceSeinfeldExample() {
-		return "Execute example to demonstrate how to cluster Seinfeld episodes.  Thanks to Frank Scholten @ Trifork for this example" + 
-				"http://blog.trifork.nl/2011/04/04/how-to-cluster-seinfeld-episodes-with-mahout/";
-	}
-	
 	public class InternalServerException extends WebApplicationException {
 	     public InternalServerException(String message) {
 	         super(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(message).type(MediaType.TEXT_PLAIN).build());
@@ -110,7 +101,7 @@ public class KMeansService {
 	
 	@POST
 	@Path("/archive")
-	@ApiOperation(value="Archive of input data to K-Means algorithms")
+//	@ApiOperation(value="Archive of input data to K-Means algorithms")
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	public Response upload(	
 		@FormDataParam("file") 
@@ -436,10 +427,20 @@ public class KMeansService {
 		
         return Response.status(200).entity(bigstring).type(MediaType.APPLICATION_JSON).build(); 
 	}
-	
+
+    /*
+       Needs this operation to be more than 1, to work around issue in swagger-ui which otherwise
+       generates an object {} rather than list [] for operations field
+    */
+//    @GET
+//    @ApiOperation(value="Please use POST to do k-means clustering")
+//    @Produces(MediaType.APPLICATION_JSON)
+//    public Response get() {
+//        return Response.status(Status.OK).build();
+//    }
+//
 	@GET
-	@Path("/clusterdumper")
-	@ApiOperation(value="Dump cluster as a JSON")
+	@ApiOperation(value="Get clusters as JSON")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response dumpCluster(
 		@ApiParam(value = "How many top feature words to show",
