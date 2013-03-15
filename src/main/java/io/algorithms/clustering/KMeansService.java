@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,6 +35,7 @@ import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.logging.Log;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.clustering.kmeans.KMeansDriver;
 import org.apache.mahout.text.SequenceFilesFromDirectory;
@@ -67,28 +69,31 @@ public class KMeansService {
 	private static File PATH_VECTOR_FILES;
 	private static File PATH_OUTPUT;
 	private static File SEINFELD_ARCHIVE = null;
-	static {
-		try {
-			PATH_APP = new File(Thread.currentThread().getContextClassLoader().getResource("/").toURI());
-			PATH_EXTRACTED_ARCHIVE = new File(PATH_APP.getCanonicalPath() + File.separator + "kmeans/extracted-archive");
-			PATH_SEQUENCE_FILES = new File(PATH_APP.getCanonicalPath() + File.separator + "kmeans/sequence-files");
-			PATH_VECTOR_FILES = new File (PATH_APP.getCanonicalPath() + File.separator + "kmeans/vectors");
-			PATH_OUTPUT = new File(PATH_APP.getCanonicalPath() + File.separator + "kmeans/output");
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
+//	static {
+//		try {
+//			PATH_APP = new File(Thread.currentThread().getContextClassLoader().getResource("/").toURI());
+//			PATH_EXTRACTED_ARCHIVE = new File(PATH_APP.getCanonicalPath() + File.separator + "kmeans/extracted-archive");
+//			PATH_SEQUENCE_FILES = new File(PATH_APP.getCanonicalPath() + File.separator + "kmeans/sequence-files");
+//			PATH_VECTOR_FILES = new File (PATH_APP.getCanonicalPath() + File.separator + "kmeans/vectors");
+//			PATH_OUTPUT = new File(PATH_APP.getCanonicalPath() + File.separator + "kmeans/output");
+//		} catch (URISyntaxException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//
+//	}
 			
 	private static final Logger log = LoggerFactory.getLogger(KMeansService.class);
-	private static final Map<String, String> exampleDatasetMap = new HashMap<String, String>();
-	private static final String DATASET_SEINFELD = "seinfeld";
-	static {
+    public static final Map<String, String> exampleDatasetMap = new HashMap<String, String>();
+    public static final String DATASET_SEINFELD = "seinfeld";
+    public static final String DATASET_SAMSUNG_TWEETS = "samsung-tweets";
+
+    static {
 		exampleDatasetMap.put(DATASET_SEINFELD, "5555");
+        exampleDatasetMap.put(DATASET_SAMSUNG_TWEETS, "6666");
 	}
 	
 	public class InternalServerException extends WebApplicationException {
@@ -201,8 +206,8 @@ public class KMeansService {
 
 		@ApiParam(value = "Distance measure used to calculate distances from centroids",
 			defaultValue="SquaredEuclidean", 
-			allowableValues="org.apache.mahout.common.distance.SquaredEuclidean," + 
-				"org.apache.mahout.common.distance.Euclidean," +
+			allowableValues="org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure," +
+				"org.apache.mahout.common.distance.EuclideanDistanceMeasure," +
 				"org.apache.mahout.common.distance.TanimotoDistanceMeasure," +
 				"org.apache.mahout.common.distance.CosineDistanceMeasure," +
 				"org.apache.mahout.common.distance.WeightedManhattanDistanceMeasure")
@@ -224,15 +229,12 @@ public class KMeansService {
 	    @QueryParam("test")
 	    @FormParam("test")
 	    String test
-	)
-	{
-		System.out.println("algoServer=[" + algoServer + "]");
-		System.out.println("authToken=[" + authToken + "]");
+	) throws IOException {
 		String datasource = null;
 		
 		if (test != null) {
 			if (exampleDatasetMap.get(test.toLowerCase()) == null) {
-				return Response.status(400)
+				return Response.status(Status.NOT_FOUND)
 						.entity("Test specified [" + test + "] is not a valid test")
 						.type(MediaType.APPLICATION_JSON)
 						.build();
@@ -258,7 +260,7 @@ public class KMeansService {
 			if (dsid <= 0) {
 				JSON dsArray = JSONSerializer.toJSON(datasources);
 				if (!(dsArray instanceof JSONArray)) {
-					return Response.status(Status.BAD_REQUEST)
+					return Response.status(Status.GONE)
 							.entity("Invalid datasources parameter [" + datasources + "]")
 							.build();
 				}
@@ -268,7 +270,6 @@ public class KMeansService {
 				// parameter string is just an integer instead of a json array
 				datasource = datasources;
 			}
-			System.out.println("DATASOURCE = [" + datasource + "]");
 			
 			try {
 
@@ -294,7 +295,14 @@ public class KMeansService {
 		
 		String dataPath = null;
 		try {
-			PATH_APP = new File(Thread.currentThread().getContextClassLoader().getResource("/").toURI());
+            URL resource = Thread.currentThread().getContextClassLoader().getResource("/");
+            if (resource == null) {
+                // jersey-test
+                PATH_APP = new File("");
+            }
+            else {
+			    PATH_APP = new File(resource.toURI());
+            }
 			dataPath = PATH_APP.getCanonicalPath() + File.separator + "kmeans" + "-" + authToken + "-" + (test!=null ? test.toLowerCase() : datasource);
 			PATH_EXTRACTED_ARCHIVE = new File(dataPath + File.separator + "extracted-archive");
 			PATH_SEQUENCE_FILES = new File(dataPath + File.separator + "sequence-files");
@@ -310,21 +318,16 @@ public class KMeansService {
 		}
 		
 		// create a lock file if not exist
-		File lockfile = new File(dataPath + "-lock");
-		if (lockfile.exists()) {
-			return Response.status(Status.UNAUTHORIZED)
-					.entity("There's another kmeans process running with authToken [ " 
-							+ authToken + "] and dataset [" + datasource + "]")
-					.type(MediaType.APPLICATION_JSON)
-					.build();
-		}
-		try {
-			lockfile.createNewFile();
-		} catch (IOException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
-		
+//		File lockfile = new File(dataPath + "-lock");
+//		if (lockfile.exists()) {
+//			return Response.status(Status.UNAUTHORIZED)
+//					.entity("There's another kmeans process running with authToken [ "
+//							+ authToken + "] and dataset [" + datasource + "]")
+//					.type(MediaType.APPLICATION_JSON)
+//					.build();
+//		}
+//        lockfile.createNewFile();
+
 		final TarGZipUnArchiver ua = new TarGZipUnArchiver();
 		ua.enableLogging(new ConsoleLogger(
 				org.codehaus.plexus.logging.Logger.LEVEL_INFO, "console"));
@@ -354,7 +357,7 @@ public class KMeansService {
 			missParamError.append("Missing one of these clustering parameters (numClusters, distanceMeasure, numWords)");
 		}
 		if (missParamError.length() > 0) {
-			return Response.status(400).entity(missParamError.toString()).build();
+			return Response.status(Status.BAD_REQUEST).entity(missParamError.toString()).build();
 		}
 
  	
@@ -423,7 +426,7 @@ public class KMeansService {
 			e.printStackTrace();
 		}
 		
-		lockfile.delete();
+//		lockfile.delete();
 		
         return Response.status(200).entity(bigstring).type(MediaType.APPLICATION_JSON).build(); 
 	}
@@ -490,7 +493,7 @@ public class KMeansService {
         return ret && path.delete();
     }
      
-    
+
     /**
      * @param args
      */

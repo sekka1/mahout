@@ -159,6 +159,11 @@
             <version>2.4</version>
             <classifier>jdk15</classifier>
         </dependency>
+        <dependency>
+            <groupId>org.codehaus.jackson</groupId>
+            <artifactId>jackson-core-asl</artifactId>
+            <version>1.9.11</version>
+        </dependency>
        	<dependency>
        		<groupId>org.codehaus.jackson</groupId>
        		<artifactId>jackson-mapper-asl</artifactId>
@@ -200,18 +205,35 @@
 			<groupId>com.sun.jersey</groupId>
 			<artifactId>jersey-bundle</artifactId>
 			<version>1.8</version>
-		</dependency> 
-		    <dependency>
-      <groupId>com.wordnik</groupId>
-      <artifactId>swagger-jaxrs_2.9.1</artifactId>
-      <version>1.2.0</version>
-      <scope>compile</scope>
-    </dependency>
-    	<dependency>
-		<groupId>org.apache.mahout</groupId>
-		<artifactId>mahout-integration</artifactId>
-		<version>0.7</version>
-	</dependency>
+		</dependency>
+		<dependency>
+			<groupId>com.wordnik</groupId>
+			<artifactId>swagger-jaxrs_2.9.1</artifactId>
+			<version>1.2.0</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.mahout</groupId>
+			<artifactId>mahout-integration</artifactId>
+			<version>0.7</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-test-framework</artifactId>
+			<version>1.1.5.2</version>
+			<scope>test</scope>
+		</dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>0.8.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path-assert</artifactId>
+            <version>0.8.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
   
   <build>
@@ -317,5 +339,6 @@
             </plugin>
       </plugins>
   </build>
+
 </project>
 

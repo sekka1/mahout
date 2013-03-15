@@ -1,0 +1,234 @@
+{
+    "apiVersion": "1.0",
+    "apis": {
+        "description": "Operations to run fuzzy k-means algorithm",
+        "operations": [
+            {
+                "errorResponses": [
+                    {
+                        "code": "500",
+                        "reason": "Internal Server Error"
+                    },
+                    {
+                        "code": "400",
+                        "reason": "No archive uploaded"
+                    }
+                ],
+                "httpMethod": "POST",
+                "nickname": "run",
+                "parameters": [
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "description": "Authentication token",
+                        "name": "authToken",
+                        "paramType": "query",
+                        "required": "true"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "description": "Calling algorithms.io API server",
+                        "name": "algoServer",
+                        "paramType": "query",
+                        "required": "true"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "description": "Datasource ID",
+                        "name": "datasources",
+                        "paramType": "query",
+                        "required": "true"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "description": "Max n-gram size used to generate sparse vectors",
+                        "name": "maxNGramSize",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "description": "Min document frequency",
+                        "name": "minDF",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "description": "The max percentage of docs for the DF.  Can be used to remove really high frequency terms. Expressed as an integer between 0 and 100. Default is 99.  If maxDFSigma is also set, it will override this value.",
+                        "name": "maxDF",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "description": "The kind of weight to use. Currently TF or TFIDF",
+                        "name": "weight",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "description": "The norm to use, expressed as either a float or \"INF\" if you want to use the Infinite norm.  Must be greater or equal to 0.  The default is not to normalize",
+                        "name": "norm",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "allowableValues": {
+                            "@type": "documentationAllowableListValues",
+                            "valueType": "LIST",
+                            "values": [
+                                "org.apache.mahout.analysis.SeinfeldScriptAnalyzer",
+                                "org.apache.mahout.text.MailArchivesClusteringAnalyzer",
+                                "org.apache.mahout.text.wikipedia.WikipediaAnalyzer"
+                            ]
+                        },
+                        "dataType": "string",
+                        "description": "Fully qualified class name of analyzer",
+                        "name": "analyzerName",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "allowableValues": {
+                            "@type": "documentationAllowableRangeValues",
+                            "valueType": "RANGE"
+                        },
+                        "dataType": "string",
+                        "defaultValue": "10",
+                        "description": "Maximum number of iterations which once reached, iterations will stop",
+                        "name": "maxIter",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "allowableValues": {
+                            "@type": "documentationAllowableRangeValues",
+                            "valueType": "RANGE"
+                        },
+                        "dataType": "string",
+                        "defaultValue": "100",
+                        "description": "The k in k-Means.  If specified, then a random selection of k Vectors will be chosen as the centroid and written to the clusters input path.",
+                        "name": "numClusters",
+                        "paramType": "query",
+                        "required": "true"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "allowableValues": {
+                            "@type": "documentationAllowableListValues",
+                            "valueType": "LIST",
+                            "values": [
+                                "org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure",
+                                "org.apache.mahout.common.distance.EuclideanDistanceMeasure",
+                                "org.apache.mahout.common.distance.TanimotoDistanceMeasure",
+                                "org.apache.mahout.common.distance.CosineDistanceMeasure",
+                                "org.apache.mahout.common.distance.WeightedManhattanDistanceMeasure"
+                            ]
+                        },
+                        "dataType": "string",
+                        "defaultValue": "SquaredEuclidean",
+                        "description": "Distance measure used to calculate distances from centroids",
+                        "name": "distanceMeasure",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "defaultValue": "5",
+                        "description": "How many top feature words to show",
+                        "name": "numWords",
+                        "paramType": "query",
+                        "required": "true"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "allowableValues": {
+                            "@type": "documentationAllowableListValues",
+                            "valueType": "LIST",
+                            "values": [
+                                "Seinfeld",
+                                "Reuters"
+                            ]
+                        },
+                        "dataType": "string",
+                        "defaultValue": "Seinfeld",
+                        "description": "Use for testing this endpoint with canned dataset",
+                        "name": "test",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "defaultValue": "0.5",
+                        "description": "Convergence delta value",
+                        "name": "convergenceDelta",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "defaultValue": "2",
+                        "description": "Fuzzification factor, see http://en.wikipedia.org/wiki/Data_clustering#Fuzzy_c-means_clustering",
+                        "name": "m",
+                        "paramType": "query",
+                        "required": "true"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "defaultValue": "true",
+                        "description": "If true emit only most likely cluster for each point",
+                        "name": "emitMostLikely",
+                        "paramType": "query",
+                        "required": "false"
+                    },
+                    {
+                        "allowMultiple": "false",
+                        "dataType": "string",
+                        "defaultValue": "0",
+                        "description": "The pdf threshold used for cluster determination",
+                        "name": "threshold",
+                        "paramType": "query",
+                        "required": "false"
+                    }
+                ],
+                "responseClass": "void",
+                "summary": "Expand dataset into sequence files, convert into vectors and then run Fuzzy K-Means clustering algorithm"
+            },
+            {
+                "httpMethod": "GET",
+                "nickname": "dumpCluster",
+                "parameters": {
+                    "allowMultiple": "false",
+                    "dataType": "string",
+                    "defaultValue": "5",
+                    "description": "How many top feature words to show",
+                    "name": "numWords",
+                    "paramType": "form",
+                    "required": "false"
+                },
+                "responseClass": "void",
+                "summary": "Get clusters as JSON"
+            }
+        ],
+        "path": "/fuzzykmeans.{format}"
+    },
+    "basePath": "http://localhost:8080",
+    "resourcePath": "/fuzzykmeans",
+    "swaggerVersion": "1.1"
+}

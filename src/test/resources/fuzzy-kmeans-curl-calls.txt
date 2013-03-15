@@ -1,0 +1,23 @@
+#
+# Sub-endpoints
+#
+curl -X POST -d "seqFileDir=kmeans/clusters/clusters-1" -d "output=dump" -d "pointsDir=kmeans/clusters/clusterPoints" -d "numWords=5" -d "substring=20" -d "dictionary=vectors/dictionary.file-0" -d "dictionaryType=sequencefile" -d "json=json" http://localhost:8080/mahout/rest/fuzzykmeans/clusterdump
+curl -X POST -d "input=vectors/tfidf-vectors" -d "output=kmeans/clusters" -d "clusters=kmeans/initialclusters" -d "maxIter=10" -d "numClusters=10" -d "distanceMeasure=org.apache.mahout.common.distance.SquaredEuclidean" -d "convergenceDelta=0.5" -d "emitMostLikely=true" -d "method=mapreduce" -d "threshold=0" -d "m=2" http://localhost:8080/mahout/rest/fuzzykmeans/driver
+curl -X POST -d "input=kmeans-faketoken-seinfeld/sequence-files" -d "output=vectors" -d "maxNGramSize=2" -d "minDF=4" -d "maxDF=75" -d "weight=TFIDF" -d "norm=2" -d "analyzerName=io.algorithms.clustering.SeinfeldScriptAnalyzer" http://localhost:8080/mahout/rest/fuzzykmeans/seq2sparse
+curl -X POST -d "input=hello" -d "output=world" http://localhost:8080/mahout/rest/fuzzykmeans/seqdirectory
+
+# main endpoint
+curl -X POST \
+-d "test=seinfeld" -d "algoServer=test-server" -d "authToken=test-token" \
+-d "input=kmeans-faketoken-seinfeld/sequence-files" -d "output=vectors" -d "maxNGramSize=2" -d "minDF=4" -d "maxDF=75" -d "weight=TFIDF" -d "norm=2" -d "analyzerName=io.algorithms.clustering.SeinfeldScriptAnalyzer" \
+-d "maxIter=10" -d "numClusters=10" -d "distanceMeasure=org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure" -d "convergenceDelta=0.5" -d "emitMostLikely=true" -d "method=mapreduce" -d "threshold=0" -d "m=2" \
+-d "numWords=5" \
+http://localhost:8080/mahout/rest/fuzzykmeans
+
+# skip parameters that are not required
+curl -X POST \
+ -d "test=seinfeld" -d "algoServer=test-server" -d "authToken=test-token" \
+ -d "maxNGramSize=2" -d "minDF=4" -d "maxDF=75" -d "weight=TFIDF" -d "norm=2" -d "analyzerName=io.algorithms.clustering.SeinfeldScriptAnalyzer" \
+ -d "maxIter=10" -d "numClusters=10" -d "distanceMeasure=org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure" -d "convergenceDelta=0.5" -d "emitMostLikely=true" -d "method=mapreduce" -d "threshold=0" -d "m=2" \
+ -d "numWords=5" \
+ http://localhost:8080/mahout/rest/fuzzykmeans
