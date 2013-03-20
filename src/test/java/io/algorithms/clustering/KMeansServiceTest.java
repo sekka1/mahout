@@ -75,16 +75,4 @@ public class KMeansServiceTest extends JerseyTest
 //        assertEquals("Hello World", responseMsg);
  
 	}
-
-    @Test
-    public final void testSayHello()
-    {
-        WebResource wr = client().resource("http://localhost:9998");
-        Form form = new Form();
-        form.add("what", "world");
-        String resp = wr.path("hello").type(MediaType.APPLICATION_FORM_URLENCODED)
-            .post(String.class, form);
-
-    }
-
 }
