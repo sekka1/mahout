@@ -20,7 +20,7 @@ public class FuzzyKMeansServiceTest extends JerseyTest
         super("io.algorithms.clustering");
     }
 
-	public final void testSeinfeldPostWithForm()
+	public final void GtestSeinfeldPostWithForm()
 	{
         WebResource wr = client().resource("http://localhost:9998").path("fuzzykmeans");
         Analyzer a = new SeinfeldScriptAnalyzer();

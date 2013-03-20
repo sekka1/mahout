@@ -50,7 +50,7 @@ public class KMeansServiceTest extends JerseyTest
 //	}
 	
 	@Test
-	public final void _testSeinfeldPostWithForm()
+	public final void GtestSeinfeldPostWithForm()
 	{
         WebResource wr = client().resource("http://localhost:9998").path("kmeans");
         Form form = new Form();
