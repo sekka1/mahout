@@ -23,6 +23,10 @@
 			<url>http://repo1.maven.org/maven2/</url>
 		</repository>
      </repositories>
+    <scm>
+        <developerConnection>scm:git:git@github.com:sekka1/mahout.git</developerConnection>
+      <tag>mahout-0.1.0</tag>
+  </scm>
     <dependencies>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -336,6 +340,11 @@
                 <groupId>org.mortbay.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
                 <version>8.0.1.v20110908</version>
+            </plugin>
+            <plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-release-plugin</artifactId>
+                 <version>2.4</version>
             </plugin>
       </plugins>
   </build>

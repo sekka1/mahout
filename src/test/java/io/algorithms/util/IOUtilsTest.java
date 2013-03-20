@@ -6,6 +6,9 @@ package io.algorithms.util;
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.io.IOException;
+
+import javax.xml.ws.http.HTTPException;
 
 import io.algorithms.util.IOUtils;
 
@@ -38,11 +41,27 @@ public class IOUtilsTest {
      */
     @Test
     public void testDownloadFileFromAPI() throws Exception {
-        String algoServer = "http://pod1.staging.v1.api.algorithms.io";
-        String authToken = "3bb0a4cc58933d2f18acdce2084cb387";
-        String dataSourceId = "2740";
+        String algoServer = "http://v1.api.algorithms.io";
+        String authToken = "02cfc86d9992e822510318adebccb4d3";
+        String dataSourceId = "3314";
         File output = IOUtils.downloadFileFromAPI(authToken, algoServer, dataSourceId);
         assertTrue(output.exists() && output.length() > 0);
+    }
+
+    /**
+     * Test method for {@link io.algorithms.util.IOUtils#downloadFileFromAPI(java.lang.String, java.lang.String, java.lang.String)}.
+     */
+    // @Test // TODO: Garland - the api server must return a HTTP error for missing datasets
+    public void testDownloadFileFromAPINegative() throws Exception {
+        String algoServer = "http://v1.api.algorithms.io";
+        String authToken = "02cfc86d9992e822510318adebccb4d3";
+        String dataSourceId = "abcd";
+        try {
+            IOUtils.downloadFileFromAPI(authToken, algoServer, dataSourceId);
+            fail("Did not throw HTTPException for missing datasource");
+        } catch (IOException e) {
+            // Success
+        }
     }
 
     /**

@@ -26,10 +26,13 @@ import javax.ws.rs.core.MediaType;
 import org.apache.mahout.classifier.sgd.CsvRecordFactory;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.JsonParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.io.ByteStreams;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
@@ -42,14 +45,19 @@ public final class IOUtils {
     public static final String API_DATASET_URL_SUFFIX = "/dataset/id/",
             CONTENT_TYPE = "Content-Type",
             CONTENT_TYPE_JSON = "application/json",
-            TMP_FOLDER = "/tmp",
+            TMP_FOLDER = "tmp",
+            TMP_FOLDER_FALLBACK = "/tmp",
             AUTH_TOKEN = "authToken";
     private static final Map<String, Class<?>> TYPES = new HashMap<String, Class<?>>();
     private static final ClientConfig ALL_TRUSTING_CLIENT_CONFIG = new DefaultClientConfig();
+    private static final Logger LOG = LoggerFactory.getLogger(IOUtils.class);
+    
     static {
         TYPES.put("string", String.class);
         TYPES.put("number", Double.class);
         TYPES.put("integer", Integer.class);
+        TYPES.put("map", Map.class);
+        TYPES.put("list", List.class);
         TYPES.put("datasource", File.class);
         
         try {
@@ -95,18 +103,35 @@ public final class IOUtils {
      * @throws IOException
      */
     public static File downloadFileFromAPI(String authToken, String algoServer, String dataSourceId) throws JsonParseException, JsonMappingException, IOException {
-        File output = new File(TMP_FOLDER, algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
-        if (output.exists()) { return output; } // TODO: Assumes that the dataset never changes. Need to verify checksum.
+        LOG.info("Requested dataset id [" + dataSourceId + "] from algoServer [" + algoServer + "]");
+        File output = new File(getTmpFolder(), algoServer.replace("/", "") + ":" + authToken + ":" + dataSourceId);
+        if (output.exists()) { // TODO: Assumes that the dataset never changes. Need to verify checksum.
+            LOG.info("Dataset [" + dataSourceId + "] has already been downloaded to local filesystem.");
+            return output;
+        } 
 
         ClientResponse response = Client.create(ALL_TRUSTING_CLIENT_CONFIG) // TODO: HIGHLY UNSAFE
             .resource(algoServer + API_DATASET_URL_SUFFIX + dataSourceId)
             .accept(MediaType.WILDCARD)
             .header(AUTH_TOKEN, authToken)
             .get(ClientResponse.class);
-        ByteStreams.copy(response.getEntityInputStream(), new FileOutputStream(output));
-        return output;
+        if (response.getClientResponseStatus().equals(Status.OK)) {
+            ByteStreams.copy(response.getEntityInputStream(), new FileOutputStream(output));
+            LOG.info("Successfully downloaded dataset id [" + dataSourceId + "] to [" + output.getAbsolutePath() + "]");
+            return output;
+        } else {
+            throw new IOException("Received HTTP " + response.getClientResponseStatus() + " from " + algoServer);
+        }
     }
-    
+
+    public static File getTmpFolder() {
+        File tmp = new File(TMP_FOLDER);
+        if (!(tmp.exists() && tmp.isDirectory() && tmp.canWrite() || tmp.mkdirs())) {
+            LOG.warn("Cannot use [" + TMP_FOLDER + "]. Falling back to [" + TMP_FOLDER_FALLBACK + "]");
+            tmp = new File(TMP_FOLDER_FALLBACK);
+        }
+        return tmp;
+    }
     
     public static Class<?> getClazz(String type) {
         if (type == null) { type = "string"; }

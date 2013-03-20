@@ -50,7 +50,7 @@ import com.googlecode.jcsv.reader.internal.DefaultCSVEntryParser;
  */
 public class Lucene {
     static final Version LUCENE_CURRENT = Version.LUCENE_36;
-    static final File INDEX_FOLDER = new File("tmp", "lucene-index");
+    static final File INDEX_FOLDER = new File(IOUtils.getTmpFolder(), "lucene-index");
     static final String INDEX_FILE_PREFIX = LUCENE_CURRENT + "-";
     static final String FIELD_NAME = "Name", FIELD_TEXT = "Text";
 
