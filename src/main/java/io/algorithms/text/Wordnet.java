@@ -24,7 +24,7 @@ import edu.mit.jwi.morph.WordnetStemmer;
  * Exposes wordnet functionality.
  */
 public class Wordnet {
-    public static final String WORDNET_LOCATION = "/usr/share/wordnet";
+    public static final String WORDNET_LOCATION = "/usr/share/wordnet/dict";
     
     /**
      * Returns a list of words related to the given word. This includes synonyms and hypernyms.
